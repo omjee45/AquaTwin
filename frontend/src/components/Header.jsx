@@ -1,73 +1,203 @@
 import React, { useState, useEffect } from 'react'
-import { ShieldCheck, Radio, Server, Activity, Clock } from 'lucide-react'
+import { Clock, Menu, X, Droplets, Radar } from 'lucide-react'
 
-export default function Header({ modelInfo, isConnected }) {
-  const [time, setTime] = useState('')
+export default function Header({
+  currentView,
+  onNavigate,
+  isCedarActive = true,
+  isApiOffline = false
+}) {
+  const [timeStr, setTimeStr] = useState('')
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+  const [activeSection, setActiveSection] = useState('command-center')
 
+  // Clock effect
   useEffect(() => {
     const updateTime = () => {
       const now = new Date()
-      setTime(now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false }) + ' IST')
+      setTimeStr(now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false }) + ' IST')
     }
     updateTime()
     const timer = setInterval(updateTime, 1000)
     return () => clearInterval(timer)
   }, [])
 
+  // Scroll detection
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolled(window.scrollY > 20)
+
+      // Simple scroll spy when in command view
+      if (currentView === 'command') {
+        const sections = ['command-center', 'what-it-does', 'how-it-works']
+        for (const s of sections) {
+          const el = document.getElementById(s)
+          if (el) {
+            const rect = el.getBoundingClientRect()
+            if (rect.top <= 120 && rect.bottom >= 120) {
+              setActiveSection(s)
+              break
+            }
+          }
+        }
+      }
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [currentView])
+
+  const navItems = [
+    { id: 'command-center', label: 'Command Center', view: 'command' },
+    { id: 'what-it-does', label: 'What It Does', view: 'command' },
+    { id: 'how-it-works', label: 'How It Works', view: 'command' },
+    { id: 'docs', label: 'Documentation', view: 'docs' },
+  ]
+
+  const handleNavClick = (item) => {
+    setMobileOpen(false)
+    if (item.view === 'docs') {
+      onNavigate('docs')
+    } else {
+      onNavigate('command', item.id)
+    }
+  }
+
   return (
-    <header className="w-full border-b border-cyan-500/20 bg-[#070b14]/90 backdrop-blur-md px-6 py-3.5 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+    <header
+      id="site-nav"
+      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 transition-all duration-300"
+      style={{
+        height: 'var(--nav-h)',
+        backgroundColor: scrolled ? 'rgba(2, 6, 15, 0.88)' : 'rgba(2, 6, 15, 0.55)',
+        borderBottom: '1px solid rgba(90, 150, 255, 0.12)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+      }}
+    >
+      <div className="max-w-[1200px] w-full mx-auto flex items-center justify-between">
         
-        {/* Brand & Mission Tag */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-cyan-500/10 border border-cyan-400/40 text-cyan-400">
-            <Radio className="w-5 h-5 animate-pulse" />
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
+        {/* ── Logo on Left: AquaTwin wordmark + small water-drop radar icon ── */}
+        <div
+          className="flex items-center gap-2.5 cursor-pointer group select-none"
+          onClick={() => onNavigate('command', 'command-center')}
+        >
+          {/* Water-drop Radar Icon */}
+          <div className="relative w-7 h-7 rounded-lg bg-blue-600/20 border border-blue-400/35 flex items-center justify-center text-[#5AA9FF] shadow-[0_0_12px_rgba(59,130,246,0.3)] group-hover:scale-105 transition-transform">
+            <Droplets className="w-4 h-4 text-[#5AA9FF]" />
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#22D3EE] animate-ping" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xl font-bold tracking-tight font-heading text-white">
-                AQUA<span className="text-cyan-400">TWIN</span>
-              </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 uppercase tracking-wider">
-                v2.0 • Delhi Flood Ops
-              </span>
-            </div>
-            <p className="text-xs text-gray-400">
-              Sentinel-1 SAR Radar Digital Twin & Cedar Policy Gate
-            </p>
+
+          <div className="flex items-baseline gap-1.5">
+            <span className="font-heading font-extrabold text-lg tracking-tight text-white">
+              AQUA<span className="text-[#5AA9FF]">TWIN</span>
+            </span>
+            <span className="hidden sm:inline-block font-mono text-[9px] text-[#8EA0C4] uppercase tracking-wider">
+              Replay
+            </span>
           </div>
         </div>
 
-        {/* Live Operational Badges */}
-        <div className="flex items-center gap-3 text-xs font-mono">
+        {/* ── Centered Links (Desktop) with Scroll-Spy Highlight ── */}
+        <nav className="hidden md:flex items-center gap-1">
+          {navItems.map((item) => {
+            const isActive =
+              item.view === 'docs'
+                ? currentView === 'docs'
+                : currentView === 'command' && activeSection === item.id
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleNavClick(item)}
+                className={`px-3.5 py-1.5 rounded-full font-mono text-xs tracking-tight transition-all duration-200 cursor-pointer ${
+                  isActive
+                    ? 'text-white bg-blue-600/20 border border-blue-400/40 shadow-[0_0_15px_rgba(59,130,246,0.25)] font-medium'
+                    : 'text-[#8EA0C4] hover:text-white border border-transparent'
+                }`}
+              >
+                {item.label}
+              </button>
+            )
+          })}
+        </nav>
+
+        {/* ── Right: Cedar Active pill & IST Clock ── */}
+        <div className="hidden sm:flex items-center gap-3">
           
-          {/* Radar Status */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-blue-500/10 border border-blue-500/25 text-blue-300">
-            <Activity className="w-3.5 h-3.5 text-blue-400" />
-            <span>SAR EXTENT: <strong className="text-white">JULY 2023</strong></span>
+          {/* Cedar Active Status Pill */}
+          <div
+            className={`flex items-center gap-2 px-3 py-1 rounded-full font-mono text-[11px] border transition-all ${
+              isApiOffline
+                ? 'bg-rose-950/30 border-rose-500/30 text-[#F43F5E]'
+                : isCedarActive
+                ? 'bg-emerald-950/30 border-emerald-500/30 text-[#34D399]'
+                : 'bg-zinc-900 border-zinc-700 text-zinc-400'
+            }`}
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                isApiOffline
+                  ? 'bg-[#F43F5E] shadow-[0_0_8px_#F43F5E]'
+                  : isCedarActive
+                  ? 'bg-[#34D399] shadow-[0_0_8px_#34D399] animate-pulse'
+                  : 'bg-zinc-500'
+              }`}
+            />
+            <span className="font-medium tracking-wide">
+              {isApiOffline ? 'Offline' : isCedarActive ? 'Cedar Active' : 'Cedar Idle'}
+            </span>
           </div>
 
-          {/* Cedar Gate */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/25 text-emerald-300">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>CEDAR: <strong className="text-white">ACTIVE</strong></span>
+          {/* IST Clock */}
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#050B1E]/80 border border-blue-500/20 font-mono text-[11px] text-[#8EA0C4]">
+            <Clock className="w-3 h-3 text-[#5AA9FF]" />
+            <span>{timeStr}</span>
           </div>
 
-          {/* AI Model */}
-          <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-cyan-500/10 border border-cyan-500/25 text-cyan-300">
-            <Server className="w-3.5 h-3.5 text-cyan-400" />
-            <span>MODEL: <strong className="text-white">{modelInfo?.model_name || 'gemini-flash-latest'}</strong></span>
-          </div>
-
-          {/* Local IST Clock */}
-          <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gray-800/60 border border-gray-700/60 text-gray-300">
-            <Clock className="w-3.5 h-3.5 text-gray-400" />
-            <span>{time}</span>
-          </div>
         </div>
+
+        {/* ── Mobile Hamburger Menu Toggle ── */}
+        <button
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="md:hidden p-1.5 rounded-lg text-[#8EA0C4] hover:text-white hover:bg-white/5 border border-blue-500/20"
+        >
+          {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
 
       </div>
+
+      {/* ── Mobile Sheet Drawer ── */}
+      {mobileOpen && (
+        <div
+          className="md:hidden fixed top-[var(--nav-h)] left-0 right-0 bottom-0 bg-[#02060F]/95 backdrop-blur-2xl z-40 p-6 flex flex-col justify-between"
+          style={{ height: 'calc(100vh - var(--nav-h))' }}
+        >
+          <div className="flex flex-col gap-3">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => handleNavClick(item)}
+                className="text-left py-3 px-4 rounded-xl font-heading text-lg font-medium text-zinc-200 hover:text-white hover:bg-blue-600/10 border border-transparent hover:border-blue-500/30"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="pt-6 border-t border-blue-500/20 flex flex-col gap-3 font-mono text-xs">
+            <div className="flex items-center justify-between text-[#8EA0C4]">
+              <span>Status</span>
+              <span className="text-[#34D399] font-semibold">Cedar Active</span>
+            </div>
+            <div className="flex items-center justify-between text-[#8EA0C4]">
+              <span>Time</span>
+              <span>{timeStr}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
     </header>
   )
 }

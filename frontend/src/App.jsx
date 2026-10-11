@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { getState, computeRoute, sendChat } from './api'
+import Header from './components/Header'
 import Hero from './components/Hero'
 import StatCounters from './components/StatCounters'
 import MapDashboard from './components/MapDashboard'
@@ -10,7 +11,6 @@ import Documentation from './components/Documentation'
 import TechStrip from './components/TechStrip'
 import WhatItDoes from './components/WhatItDoes'
 import HowItWorks from './components/HowItWorks'
-import { ShieldCheck, Clock, Radar, Menu, X } from 'lucide-react'
 
 const STORAGE_KEY = 'aquatwin_session_stats'
 
@@ -25,9 +25,7 @@ export default function App() {
   const [llmReason, setLlmReason] = useState('')
   const [currentView, setCurrentView] = useState('command') // 'command' | 'docs'
   const [recentEvent, setRecentEvent] = useState('')
-  const [timeStr, setTimeStr] = useState('')
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
+  const [isApiOffline, setIsApiOffline] = useState(false)
 
   // 2. Persistent Real Session Totals
   const [sessionStats, setSessionStats] = useState(() => {
@@ -56,31 +54,14 @@ export default function App() {
     })
   }
 
-  // 3. Clock effect
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date()
-      setTimeStr(now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false }) + ' IST')
-    }
-    updateTime()
-    const timer = setInterval(updateTime, 1000)
-    return () => clearInterval(timer)
-  }, [])
-
-  // Scroll detection for nav background
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
-  // 4. Initial Load: fetch state & compute initial route
+  // 3. Initial Load: fetch state & compute initial route
   useEffect(() => {
     async function init() {
       setIsLoading(true)
       try {
         const state = await getState()
         setStateData(state)
+        setIsApiOffline(false)
 
         // Compute baseline vs safe route
         const route = await computeRoute(6720363005, 458640629)
@@ -98,6 +79,7 @@ export default function App() {
         setRecentEvent(`Ambulance 4: +${route.safe_route?.detour_km?.toFixed(2) || '1.43'} km safe detour bypassing ${route.safe_route?.risk_segments_avoided || 93} flooded segments.`)
       } catch (err) {
         console.error('Initialization error:', err)
+        setIsApiOffline(true)
       } finally {
         setIsLoading(false)
       }
@@ -105,7 +87,7 @@ export default function App() {
     init()
   }, [])
 
-  // 5. Action: Send Dispatcher Chat message
+  // 4. Action: Send Dispatcher Chat message
   const handleSendMessage = async (queryText) => {
     setIsLoading(true)
     try {
@@ -130,7 +112,6 @@ export default function App() {
           setRecentEvent(`Cedar policy AUTHORIZED emergency broadcast for ${resp.policy_event.display_name}`)
         }
       } else {
-        // If query was routing, compute route
         const route = await computeRoute(6720363005, 458640629)
         setRouteData(route)
         updateSessionStats({
@@ -146,7 +127,7 @@ export default function App() {
     }
   }
 
-  // 6. Action: Manual Route (fallback when llm_unavailable)
+  // 5. Action: Manual Route (fallback when llm_unavailable)
   const handleManualRoute = async () => {
     setIsLoading(true)
     try {
@@ -172,252 +153,115 @@ export default function App() {
     }
   }
 
-  const handleOpenCommandCenter = () => {
-    const el = document.getElementById('command-center')
-    if (el) el.scrollIntoView({ behavior: 'smooth' })
-  }
-
-  const handleScrollTo = (id) => {
-    if (currentView !== 'command') {
-      setCurrentView('command')
+  const handleNavigate = (view, targetId) => {
+    setCurrentView(view)
+    if (view === 'command' && targetId) {
       setTimeout(() => {
-        const el = document.getElementById(id)
+        const el = document.getElementById(targetId)
         if (el) el.scrollIntoView({ behavior: 'smooth' })
       }, 50)
-    } else {
-      const el = document.getElementById(id)
-      if (el) el.scrollIntoView({ behavior: 'smooth' })
+    } else if (view === 'command') {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
 
-  const navLinks = [
-    { label: 'Command Center', action: () => { setCurrentView('command'); handleScrollTo('command-center') }, active: currentView === 'command' },
-    { label: 'What It Does', action: () => { setCurrentView('command'); handleScrollTo('what-it-does') }, active: false },
-    { label: 'How It Works', action: () => { setCurrentView('command'); handleScrollTo('how-it-works') }, active: false },
-    { label: 'Documentation', action: () => setCurrentView('docs'), active: currentView === 'docs' },
-  ]
+  const nodeCountFormatted = stateData?.stats?.segment_count_directed
+    ? `${stateData.stats.segment_count_directed.toLocaleString()}`
+    : '14,904'
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--ink)' }}>
+    <div className="min-h-screen flex flex-col bg-[#02060F] text-[#EAF1FF]">
 
-      {/* ── STICKY NAV ── */}
-      <header
-        id="site-nav"
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 'var(--nav-h)',
-          zIndex: 9000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '0 20px',
-          transition: 'background 0.3s ease, border-color 0.3s ease',
-          background: scrolled
-            ? 'rgba(5,9,13,0.92)'
-            : 'transparent',
-          borderBottom: scrolled
-            ? '1px solid rgba(0,212,255,0.08)'
-            : '1px solid transparent',
-          backdropFilter: scrolled ? 'blur(20px)' : 'none',
-          WebkitBackdropFilter: scrolled ? 'blur(20px)' : 'none',
-        }}
-      >
-        <div style={{ maxWidth: '1280px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+      {/* ── Slim Sticky Header ── */}
+      <Header
+        currentView={currentView}
+        onNavigate={handleNavigate}
+        isCedarActive={true}
+        isApiOffline={isApiOffline}
+      />
 
-          {/* Brand */}
-          <button
-            onClick={() => setCurrentView('command')}
-            style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-          >
-            <div style={{
-              width: '32px', height: '32px', borderRadius: '10px',
-              background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,229,176,0.15))',
-              border: '1px solid rgba(0,212,255,0.3)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}>
-              <Radar size={16} color="var(--water)" />
-            </div>
-            <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: '17px', letterSpacing: '-0.03em', color: 'var(--text)' }}>
-              AQUA<span style={{ color: 'var(--mint)' }}>TWIN</span>
-            </span>
-            <span style={{
-              display: 'none',
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '9px', fontWeight: 600,
-              padding: '3px 8px', borderRadius: '99px',
-              background: 'rgba(0,212,255,0.06)',
-              border: '1px solid rgba(0,212,255,0.18)',
-              color: 'var(--water)',
-              letterSpacing: '0.08em', textTransform: 'uppercase'
-            }} className="sm-show">
-              NCT Delhi Flood Ops
-            </span>
-          </button>
-
-          {/* Desktop Nav */}
-          <nav style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            {navLinks.map((link) => (
-              <button
-                key={link.label}
-                onClick={link.action}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: '99px',
-                  border: link.active ? '1px solid rgba(0,212,255,0.25)' : '1px solid transparent',
-                  background: link.active ? 'rgba(0,212,255,0.07)' : 'transparent',
-                  color: link.active ? 'var(--water)' : 'var(--muted)',
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={e => { if (!link.active) e.target.style.color = 'var(--text)' }}
-                onMouseLeave={e => { if (!link.active) e.target.style.color = 'var(--muted)' }}
-              >
-                {link.label}
-              </button>
-            ))}
-          </nav>
-
-          {/* Right Status */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '5px 12px', borderRadius: '99px',
-              background: 'rgba(0,229,176,0.06)',
-              border: '1px solid rgba(0,229,176,0.22)',
-            }}>
-              <span style={{
-                width: '7px', height: '7px', borderRadius: '50%',
-                background: 'var(--mint)',
-                boxShadow: '0 0 8px var(--mint)',
-                animation: 'signal-blink 1.4s ease-in-out infinite',
-              }} />
-              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '10px', fontWeight: 600, color: 'var(--mint)', letterSpacing: '0.06em' }}>
-                Cedar Active
-              </span>
-            </div>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '5px',
-              padding: '5px 12px', borderRadius: '99px',
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid var(--rim)',
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '10px', color: 'var(--muted)',
-            }}>
-              <Clock size={11} />
-              <span>{timeStr}</span>
-            </div>
-          </div>
-
-        </div>
-      </header>
-
-      {/* ── MAIN CONTENT ── */}
-      <main style={{ paddingTop: 'var(--nav-h)' }}>
+      {/* ── Main View Area ── */}
+      <main className="flex-1" style={{ paddingTop: 'var(--nav-h)' }}>
         {currentView === 'docs' ? (
           <Documentation onBackToCommand={() => setCurrentView('command')} />
         ) : (
           <>
-            {/* Hero */}
-            <Hero onOpenCommandCenter={handleOpenCommandCenter} />
+            {/* 1. Hero Section matching Boltshift Reference Layout */}
+            <Hero
+              onOpenCommandCenter={() => handleNavigate('command', 'command-center')}
+              nodeCount={nodeCountFormatted}
+            />
 
-            {/* Tech Strip */}
+            {/* 2. Marquee Bar below the cluster */}
+            <TelemetryMarquee
+              stats={stateData?.stats}
+              demoSegments={stateData?.demo_segments}
+              recentEvent={recentEvent}
+            />
+
+            {/* 3. Tech Strip */}
             <TechStrip />
 
-            {/* Stat Counters */}
+            {/* 4. Stat Counters */}
             <StatCounters sessionStats={sessionStats} />
 
-            {/* Command Center */}
-            <section id="command-center" style={{ maxWidth: '1280px', margin: '0 auto', padding: '48px 24px', scrollMarginTop: 'var(--nav-h)' }}>
-
-              {/* Command Center Header */}
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px', paddingBottom: '20px', borderBottom: '1px solid rgba(0,212,255,0.08)' }}>
+            {/* 5. Command Center Section */}
+            <section
+              id="command-center"
+              className="max-w-[1200px] mx-auto w-full px-4 py-16 space-y-6"
+              style={{ scrollMarginTop: 'calc(var(--nav-h) + 16px)' }}
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-blue-500/15 gap-2">
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                    <span style={{
-                      display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%',
-                      background: 'var(--mint)', boxShadow: '0 0 10px var(--mint)',
-                      animation: 'signal-blink 1.4s ease-in-out infinite'
-                    }} />
-                    <h2 style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: '26px', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text)' }}>
-                      Command Center
-                    </h2>
-                    <span style={{
-                      padding: '3px 10px', borderRadius: '99px',
-                      background: 'rgba(0,229,176,0.07)',
-                      border: '1px solid rgba(0,229,176,0.2)',
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: '10px', fontWeight: 600, color: 'var(--mint)',
-                      letterSpacing: '0.08em',
-                    }}>
-                      LIVE
-                    </span>
-                  </div>
-                  <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: 'var(--muted)', letterSpacing: '0.04em' }}>
-                    Sentinel-1 SAR Flood Mask · Deterministic Emergency Routing · Cedar Policy Gate
+                  <h2 className="text-2xl font-semibold font-heading text-white flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#5AA9FF] animate-pulse" />
+                    <span>Command Center</span>
+                  </h2>
+                  <p className="text-xs text-[#8EA0C4] font-mono mt-0.5">
+                    Sentinel-1 SAR Radar Flood Mask & Deterministic Emergency Rerouting
                   </p>
                 </div>
-                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: 'var(--muted)', textAlign: 'right', lineHeight: 1.6 }}>
-                  <div style={{ color: 'var(--water)', fontWeight: 600 }}>Ambulance 4 Start</div>
-                  <div>Near Qutab Road → Lok Nayak Hospital</div>
+                <div className="text-xs font-mono text-[#8EA0C4] sm:text-right">
+                  <span className="text-[#93C5FD]">Ambulance 4 Start</span> → Lok Nayak Hospital (LNJP)
                 </div>
               </div>
 
-              {/* Command Grid: Map (left) + AI Panel (right) */}
-              <div className="command-grid">
-
-                {/* Left: Map */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* 65% / 35% Layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                
+                {/* Left 65%: Map Dashboard */}
+                <div className="lg:col-span-8 space-y-4">
                   <MapDashboard
                     routeData={routeData}
                     places={stateData?.places}
                   />
 
-                  {/* Route Metrics Badge */}
+                  {/* Route metrics badge */}
                   {routeData?.safe_route && (
-                    <div style={{
-                      padding: '14px 20px',
-                      borderRadius: '14px',
-                      background: 'rgba(0,229,176,0.04)',
-                      border: '1px solid rgba(0,229,176,0.2)',
-                      display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
-                    }}>
+                    <div className="glass-card p-4 flex flex-wrap items-center justify-between gap-4 font-mono text-xs">
                       <div>
-                        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '3px' }}>
-                          Calculated Safe Corridor
-                        </span>
-                        <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: '22px', fontWeight: 800, color: 'var(--mint)' }}>
+                        <span className="text-[#8EA0C4] block text-[10px] uppercase tracking-wider">Calculated Safe Corridor:</span>
+                        <strong className="text-[#34D399] text-sm">
                           {routeData.safe_route.distance_km} km
-                        </span>
-                        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: 'var(--muted)', marginLeft: '10px' }}>
-                          Baseline: {routeData.default_route?.distance_km} km · Detour: +{routeData.safe_route.detour_km?.toFixed(2)} km
+                        </strong>
+                        <span className="text-[#8EA0C4] ml-2">
+                          (Baseline: {routeData.default_route?.distance_km} km, Detour: +{routeData.safe_route.detour_km?.toFixed(2)} km)
                         </span>
                       </div>
-                      <div style={{
-                        padding: '6px 14px', borderRadius: '8px',
-                        background: 'rgba(0,229,176,0.08)',
-                        border: '1px solid rgba(0,229,176,0.25)',
-                        fontFamily: "'JetBrains Mono', monospace",
-                        fontSize: '11px', fontWeight: 700, color: 'var(--mint)',
-                      }}>
+                      <div className="px-3 py-1 rounded-full bg-emerald-950/40 text-[#34D399] font-medium border border-emerald-500/30 text-xs">
                         {routeData.safe_route.risk_segments_avoided || 93} flooded edges bypassed
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* Right: Policy Gate + AI Panel */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Right 35%: Cedar Policy Gate & AI Dispatcher Panel */}
+                <div className="lg:col-span-4 space-y-4">
                   <PolicyGateCard
                     policyEvent={policyEvent}
                     isEvaluating={isLoading}
                   />
+
                   <AIPanel
                     trace={trace}
                     isLoading={isLoading}
@@ -433,16 +277,16 @@ export default function App() {
               </div>
             </section>
 
-            {/* What It Does */}
+            {/* 6. What It Does */}
             <WhatItDoes />
 
-            {/* How It Works */}
+            {/* 7. How It Works */}
             <HowItWorks />
           </>
         )}
       </main>
 
-      {/* Bottom Telemetry Marquee */}
+      {/* Sticky Bottom Telemetry Bar */}
       <TelemetryMarquee
         stats={stateData?.stats}
         demoSegments={stateData?.demo_segments}

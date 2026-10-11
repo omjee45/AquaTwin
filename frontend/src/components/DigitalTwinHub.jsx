@@ -1,341 +1,423 @@
-import React, { useState } from 'react'
-import { Radio, Layers, CloudRain, ShieldCheck, Waves, ArrowRight, Activity, Radar, Compass } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import HeroSphereCanvas from './HeroSphereCanvas'
+import { Check, ArrowDown, ShieldAlert, ShieldCheck, BarChart3, Database } from 'lucide-react'
 
-export default function DigitalTwinHub({ onOpenCommandCenter }) {
-  const [activeInstrument, setActiveInstrument] = useState(null)
+export default function DigitalTwinHub({ onOpenCommandCenter, nodeCount = '14,904' }) {
+  const containerRef = useRef(null)
+  const cardLT = useRef(null)
+  const cardLB = useRef(null)
+  const cardRT = useRef(null)
+  const cardRB = useRef(null)
+  const orbRef = useRef(null)
 
-  // Synthetic backscatter histogram bins (-24dB to -8dB)
-  // Otsu cutoff is at index 4 (-16.5 dB)
-  const sarHistogram = [
-    { db: '-24', val: 38, water: true },
-    { db: '-22', val: 65, water: true },
-    { db: '-20', val: 92, water: true },
-    { db: '-18', val: 84, water: true },
-    { db: '-16.5', val: 40, threshold: true }, // Otsu threshold line
-    { db: '-15', val: 55, water: false },
-    { db: '-13', val: 78, water: false },
-    { db: '-11', val: 88, water: false },
-    { db: '-9', val: 60, water: false },
-    { db: '-7', val: 28, water: false }
+  const [paths, setPaths] = useState([])
+  const [showHistogram, setShowHistogram] = useState(false)
+
+  // 7 Real Daily Rainfall Values (Open-Meteo)
+  // Total = 36.1 + 22.3 + 30.7 + 2.4 + 8.9 + 5.7 + 12.1 = 118.2 mm
+  const rainfallDays = [
+    { day: '08 Jul', val: 36.1, isPeak: true },
+    { day: '09 Jul', val: 22.3 },
+    { day: '10 Jul', val: 30.7 },
+    { day: '11 Jul', val: 2.4 },
+    { day: '12 Jul', val: 8.9 },
+    { day: '13 Jul', val: 5.7 },
+    { day: '14 Jul', val: 12.1 },
   ]
+  const maxRain = 36.1
 
-  // Hourly rainfall hyetograph bars for 72-hr Delhi peak (mm/hr samples)
-  const rainBars = [12, 18, 26, 42, 68, 94, 118, 98, 72, 45, 30, 16]
+  // Dynamic connector path recalculation using ResizeObserver
+  const updateConnectors = () => {
+    if (!containerRef.current || !cardLT.current || !cardLB.current || !cardRT.current || !cardRB.current || !orbRef.current) return
+
+    // Hide connectors on mobile / tablet
+    if (window.innerWidth < 1024) {
+      setPaths([])
+      return
+    }
+
+    const cRect = containerRef.current.getBoundingClientRect()
+    const ltRect = cardLT.current.getBoundingClientRect()
+    const lbRect = cardLB.current.getBoundingClientRect()
+    const rtRect = cardRT.current.getBoundingClientRect()
+    const rbRect = cardRB.current.getBoundingClientRect()
+    const oRect = orbRef.current.getBoundingClientRect()
+
+    const r = 12 // corner radius
+
+    // Orb center & connection points
+    const orbCenterX = oRect.left + oRect.width / 2 - cRect.left
+    const orbCenterY = oRect.top + oRect.height / 2 - cRect.top
+    const orbRadius = 110 // visual landing target
+    const orbLeftX = orbCenterX - orbRadius
+    const orbRightX = orbCenterX + orbRadius
+
+    // Left cards inner edge X
+    const leftInnerX = ltRect.right - cRect.left
+    const ltY = ltRect.top + ltRect.height / 2 - cRect.top
+    const lbY = lbRect.top + lbRect.height / 2 - cRect.top
+
+    // Right cards inner edge X
+    const rightInnerX = rtRect.left - cRect.left
+    const rtY = rtRect.top + rtRect.height / 2 - cRect.top
+    const rbY = rbRect.top + rbRect.height / 2 - cRect.top
+
+    // Midpoints for 90-deg turns
+    const midLeftX = leftInnerX + (orbLeftX - leftInnerX) * 0.45
+    const midRightX = rightInnerX - (rightInnerX - orbRightX) * 0.45
+
+    // Helper for rounded elbow: M (x1, y1) -> H (corner1) -> V (corner2) -> H (x2)
+    // Left-Top to Orb: (leftInnerX, ltY) -> (midLeftX, ltY) -> (midLeftX, orbCenterY) -> (orbLeftX, orbCenterY)
+    const p1 = `M ${leftInnerX} ${ltY} H ${midLeftX - r} Q ${midLeftX} ${ltY} ${midLeftX} ${ltY + r} V ${orbCenterY - r} Q ${midLeftX} ${orbCenterY} ${midLeftX + r} ${orbCenterY} H ${orbLeftX}`
+
+    // Left-Bottom to Orb: (leftInnerX, lbY) -> (midLeftX, lbY) -> (midLeftX, orbCenterY) -> (orbLeftX, orbCenterY)
+    const p2 = `M ${leftInnerX} ${lbY} H ${midLeftX - r} Q ${midLeftX} ${lbY} ${midLeftX} ${lbY - r} V ${orbCenterY + r} Q ${midLeftX} ${orbCenterY} ${midLeftX + r} ${orbCenterY} H ${orbLeftX}`
+
+    // Right-Top to Orb: (rightInnerX, rtY) -> (midRightX, rtY) -> (midRightX, orbCenterY) -> (orbRightX, orbCenterY)
+    const p3 = `M ${rightInnerX} ${rtY} H ${midRightX + r} Q ${midRightX} ${rtY} ${midRightX} ${rtY + r} V ${orbCenterY - r} Q ${midRightX} ${orbCenterY} ${midRightX - r} ${orbCenterY} H ${orbRightX}`
+
+    // Right-Bottom to Orb: (rightInnerX, rbY) -> (midRightX, rbY) -> (midRightX, orbCenterY) -> (orbRightX, orbCenterY)
+    const p4 = `M ${rightInnerX} ${rbY} H ${midRightX + r} Q ${midRightX} ${rbY} ${midRightX} ${rbY - r} V ${orbCenterY + r} Q ${midRightX} ${orbCenterY} ${midRightX - r} ${orbCenterY} H ${orbRightX}`
+
+    setPaths([
+      { d: p1, dotX: leftInnerX, dotY: ltY },
+      { d: p2, dotX: leftInnerX, dotY: lbY },
+      { d: p3, dotX: rightInnerX, dotY: rtY },
+      { d: p4, dotX: rightInnerX, dotY: rbY },
+    ])
+  }
+
+  useEffect(() => {
+    updateConnectors()
+    const ro = new ResizeObserver(() => {
+      updateConnectors()
+    })
+    if (containerRef.current) ro.observe(containerRef.current)
+    window.addEventListener('resize', updateConnectors)
+    const t = setTimeout(updateConnectors, 250)
+
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', updateConnectors)
+      clearTimeout(t)
+    }
+  }, [])
 
   return (
-    <div className="relative w-full max-w-6xl mx-auto mt-10 py-6 px-4 select-none">
-      
-      {/* Top Telemetry Header */}
-      <div className="flex items-center justify-between border-b border-white/[0.06] pb-3 mb-6 font-mono text-[11px] text-zinc-400">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-          <span className="text-zinc-200 font-semibold tracking-wider uppercase">
-            MONSOON TELEMETRY CLUSTER · DELHI 12-JUL-2023 02:00 IST
-          </span>
-        </div>
-        <div className="hidden sm:flex items-center gap-3 text-zinc-500">
-          <span>YAMUNA PEAK: 208.66m</span>
-          <span>•</span>
-          <span className="text-cyan-400">DANGER LEVEL +3.33m</span>
-        </div>
-      </div>
+    <div
+      ref={containerRef}
+      className="relative w-full max-w-[1200px] mx-auto mt-14 select-none px-4"
+      style={{ minHeight: '440px' }}
+    >
+      {/* ── Background SVG Connectors Layer (Z-index 0) ── */}
+      <svg
+        className="hidden lg:block absolute inset-0 w-full h-full pointer-events-none z-0"
+        style={{ overflow: 'visible' }}
+      >
+        <defs>
+          <filter id="blue-glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
 
-      {/* Main 3-Column Instrument Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch relative z-10">
-        
-        {/* LEFT COLUMN: Physical Radar & Elevation Sensing */}
-        <div className="lg:col-span-4 flex flex-col justify-between gap-4">
-          
-          {/* Instrument 1: Sentinel-1A SAR with Real Histogram */}
+        {paths.map((p, idx) => (
+          <g key={idx}>
+            {/* Ambient Background Glow Line */}
+            <path
+              d={p.d}
+              fill="none"
+              stroke="#2F7BFF"
+              strokeWidth="3"
+              opacity="0.3"
+              filter="url(#blue-glow)"
+            />
+            {/* Base Crisp Line */}
+            <path
+              d={p.d}
+              fill="none"
+              stroke="#2F7BFF"
+              strokeWidth="1.5"
+              opacity="0.85"
+            />
+            {/* Animated Pulse traveling along line */}
+            <path
+              d={p.d}
+              fill="none"
+              stroke="#93C5FD"
+              strokeWidth="2"
+              className="pulse-line"
+              opacity="0.95"
+            />
+            {/* 6px glowing dot at card inner edge */}
+            <circle
+              cx={p.dotX}
+              cy={p.dotY}
+              r="3.5"
+              fill="#93C5FD"
+              stroke="#3B82F6"
+              strokeWidth="1.5"
+              filter="url(#blue-glow)"
+            />
+          </g>
+        ))}
+      </svg>
+
+      {/* ── Three-Column Grid matching Reference Composition ── */}
+      <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-0">
+
+        {/* ── LEFT COLUMN (2 Cards, ~300px width, 24px vertical gap) ── */}
+        <div className="w-full lg:w-[300px] flex flex-col gap-6">
+
+          {/* Card 1: Top-Left "Evidence" */}
           <div
-            onMouseEnter={() => setActiveInstrument('sar')}
-            onMouseLeave={() => setActiveInstrument(null)}
-            className={`p-4 rounded-2xl bg-[#070D14]/90 backdrop-blur-xl border transition-all duration-300 shadow-xl flex flex-col justify-between ${
-              activeInstrument === 'sar'
-                ? 'border-cyan-400/50 shadow-[0_0_30px_rgba(0,212,255,0.15)] bg-[#0A1420]'
-                : 'border-white/[0.08] hover:border-cyan-500/30'
-            }`}
+            ref={cardLT}
+            className="glass-card w-full p-4 flex flex-col justify-between"
+            style={{ minHeight: '175px' }}
           >
             <div>
-              <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/[0.06]">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
-                    <Radio className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold font-heading text-white">Sentinel-1A SAR</h4>
-                    <span className="text-[10px] font-mono text-zinc-400">5.4 GHz C-Band · IW RTC</span>
-                  </div>
-                </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                  12-JUL 00:52
+              <div className="flex items-center justify-between pb-2 border-b border-blue-500/15 mb-3">
+                <span className="font-heading font-semibold text-sm text-white tracking-tight">
+                  Evidence
+                </span>
+                <span className="pill-tag-card">
+                  4 sources
                 </span>
               </div>
 
-              {/* Micro-visual: SAR Backscatter Histogram */}
-              <div className="my-2 p-2.5 rounded-xl bg-[#05090D] border border-white/[0.04]">
-                <div className="flex items-center justify-between text-[9px] font-mono text-zinc-400 mb-1.5">
-                  <span className="text-cyan-400">◄ Water (Specular)</span>
-                  <span className="text-amber-400 font-bold">Otsu -16.5 dB</span>
-                  <span>Land (Diffuse) ►</span>
+              {/* Horizontally scrolling check pills */}
+              <div className="pill-scroller py-1">
+                <div className="pill-scroller-content">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-900/30 border border-blue-400/25 text-[11px] font-mono text-blue-200">
+                    <Check className="w-3 h-3 text-[#34D399]" />
+                    <span>Sentinel-1 water mask</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-900/30 border border-blue-400/25 text-[11px] font-mono text-blue-200">
+                    <Check className="w-3 h-3 text-[#34D399]" />
+                    <span>Terrain: simplified HAND</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-900/30 border border-blue-400/25 text-[11px] font-mono text-blue-200">
+                    <Check className="w-3 h-3 text-[#34D399]" />
+                    <span>Rainfall 118.2 mm</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-900/30 border border-blue-400/25 text-[11px] font-mono text-blue-200">
+                    <Check className="w-3 h-3 text-[#34D399]" />
+                    <span>OSM road graph</span>
+                  </div>
+
+                  {/* Duplicate for infinite seamless scroll */}
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-900/30 border border-blue-400/25 text-[11px] font-mono text-blue-200">
+                    <Check className="w-3 h-3 text-[#34D399]" />
+                    <span>Sentinel-1 water mask</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-900/30 border border-blue-400/25 text-[11px] font-mono text-blue-200">
+                    <Check className="w-3 h-3 text-[#34D399]" />
+                    <span>Terrain: simplified HAND</span>
+                  </div>
                 </div>
-                <div className="h-10 flex items-end justify-between gap-1 relative pt-1">
-                  {/* Vertical Otsu Threshold Line */}
-                  <div className="absolute top-0 bottom-0 left-[44%] w-[1px] bg-amber-400/80 border-r border-dashed border-amber-400 z-10" />
-                  
-                  {sarHistogram.map((bin, i) => (
-                    <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group/bar">
-                      <div
-                        className={`w-full rounded-t transition-all ${
-                          bin.water
-                            ? 'bg-gradient-to-t from-cyan-600 to-cyan-400 group-hover/bar:brightness-125'
-                            : 'bg-zinc-700/60 group-hover/bar:bg-zinc-600'
-                        }`}
-                        style={{ height: `${bin.val}%` }}
-                      />
+              </div>
+
+              {/* Secondary Visual: Small Sentinel-1 Histogram with fixed -16.5 dB line */}
+              <div
+                className="mt-2.5 pt-2 border-t border-blue-500/10 cursor-pointer"
+                onClick={() => setShowHistogram(!showHistogram)}
+              >
+                <div className="flex items-center justify-between text-[10px] font-mono text-[#8EA0C4] hover:text-white transition-colors">
+                  <span>Threshold: fixed -16.5 dB</span>
+                  <span className="text-[#5AA9FF] underline">{showHistogram ? 'Hide histogram' : 'View histogram'}</span>
+                </div>
+
+                {showHistogram && (
+                  <div className="mt-2 p-2 rounded-lg bg-[#02060F]/80 border border-blue-500/20">
+                    <div className="h-6 flex items-end justify-between gap-1 relative pt-1">
+                      <div className="absolute top-0 bottom-0 left-[45%] w-[1px] bg-[#F59E0B] border-r border-dashed border-[#F59E0B] z-10" />
+                      {[35, 60, 90, 80, 40, 52, 75, 85, 62, 30].map((h, i) => (
+                        <div key={i} className="flex-1 flex flex-col items-center h-full justify-end">
+                          <div
+                            className={`w-full rounded-t ${i < 4 ? 'bg-[#22D3EE]' : 'bg-blue-600/60'}`}
+                            style={{ height: `${h}%` }}
+                          />
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-                <div className="flex justify-between text-[8px] font-mono text-zinc-500 mt-1">
-                  <span>-24 dB</span>
-                  <span className="text-amber-400">-16.5 dB threshold</span>
-                  <span>-7 dB</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-white/[0.04] flex items-center justify-between text-[10px] font-mono">
-              <span className="text-zinc-400">Inundation Extent</span>
-              <span className="text-cyan-400 font-bold">1.898 km² · 82 Polygons</span>
-            </div>
-          </div>
-
-          {/* Instrument 2: Copernicus 30m HAND Elevation Gradient */}
-          <div
-            onMouseEnter={() => setActiveInstrument('hand')}
-            onMouseLeave={() => setActiveInstrument(null)}
-            className={`p-4 rounded-2xl bg-[#070D14]/90 backdrop-blur-xl border transition-all duration-300 shadow-xl flex flex-col justify-between ${
-              activeInstrument === 'hand'
-                ? 'border-teal-400/50 shadow-[0_0_30px_rgba(0,229,176,0.15)] bg-[#0A1420]'
-                : 'border-white/[0.08] hover:border-teal-500/30'
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/[0.06]">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-teal-500/10 border border-teal-500/30 text-teal-400">
-                    <Layers className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold font-heading text-white">Copernicus 30m HAND</h4>
-                    <span className="text-[10px] font-mono text-zinc-400">Height Above Nearest Drainage</span>
-                  </div>
-                </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-400 border border-teal-500/20">
-                  GLO-30 DEM
-                </span>
-              </div>
-
-              {/* Micro-visual: HAND Topo Gradient Elevation Bar */}
-              <div className="my-2 p-2.5 rounded-xl bg-[#05090D] border border-white/[0.04]">
-                <div className="flex items-center justify-between text-[9px] font-mono text-zinc-400 mb-1.5">
-                  <span className="text-rose-400 font-bold">0.0m Submerged</span>
-                  <span className="text-amber-300">1.5m Underpass Trap</span>
-                  <span className="text-teal-400">15m Safe Ridge</span>
-                </div>
-                
-                {/* Continuous HAND Heatmap bar */}
-                <div className="h-3 w-full rounded-full bg-gradient-to-r from-cyan-600 via-amber-500 to-emerald-500 relative shadow-inner overflow-hidden">
-                  <div className="absolute left-[15%] top-0 bottom-0 w-1 bg-white shadow-[0_0_6px_#fff]" />
-                </div>
-
-                <div className="flex justify-between text-[8px] font-mono text-zinc-500 mt-1.5">
-                  <span>Bowl Depressions</span>
-                  <span className="text-amber-400 font-semibold">Underpass Pooling Threshold</span>
-                  <span>Natural Levee</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-white/[0.04] flex items-center justify-between text-[10px] font-mono">
-              <span className="text-zinc-400">Topographic Vulnerability</span>
-              <span className="text-teal-400 font-bold">High Drainage Depressions Isolated</span>
-            </div>
-          </div>
-
-        </div>
-
-        {/* CENTER COLUMN: Flood Radar Digital Twin Core */}
-        <div className="lg:col-span-4 flex flex-col items-center justify-center relative min-h-[360px] p-4 rounded-3xl bg-gradient-to-b from-[#070D14] to-[#0A1420] border border-white/[0.08] shadow-2xl overflow-hidden group">
-          
-          {/* Subtle Radar Background Grid / Circular Rings */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
-            <div className="w-72 h-72 rounded-full border border-cyan-500/20" />
-            <div className="w-52 h-52 rounded-full border border-cyan-500/25" />
-            <div className="w-32 h-32 rounded-full border border-cyan-500/30" />
-            <div className="w-full h-[1px] bg-cyan-500/15 absolute" />
-            <div className="h-full w-[1px] bg-cyan-500/15 absolute" />
-          </div>
-
-          {/* Radar Sweep Beam Effect */}
-          <div className="absolute w-72 h-72 rounded-full pointer-events-none overflow-hidden">
-            <div className="w-full h-full rounded-full animate-radar-sweep bg-[conic-gradient(from_0deg,transparent_0deg,transparent_280deg,rgba(0,229,176,0.18)_360deg)]" />
-          </div>
-
-          {/* Core Interactive Center Capsule */}
-          <div
-            onClick={onOpenCommandCenter}
-            className="relative z-10 w-52 h-52 rounded-full p-[2px] bg-gradient-to-tr from-cyan-500 via-teal-400 to-blue-600 shadow-[0_0_60px_rgba(0,212,255,0.2)] group-hover:shadow-[0_0_80px_rgba(0,212,255,0.35)] transition-all duration-500 cursor-pointer flex items-center justify-center"
-          >
-            <div className="w-full h-full rounded-full bg-[#05090D] flex flex-col items-center justify-center text-center p-4 relative overflow-hidden backdrop-blur-xl">
-              
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-[9px] font-mono text-cyan-400 mb-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                <span>RADAR CORE</span>
-              </div>
-
-              <h3 className="text-base font-extrabold font-heading text-white tracking-tight">
-                NCT Delhi Twin
-              </h3>
-
-              <div className="text-[10px] font-mono text-zinc-400 space-y-0.5 my-1">
-                <div>28.65°N, 77.23°E</div>
-                <div className="text-teal-400 font-bold">14,904 Nodes Synced</div>
-              </div>
-
-              <div className="mt-1">
-                <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold text-white bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-full border border-white/20 transition-all">
-                  <span>Enter Ops Room</span>
-                  <ArrowRight className="w-3 h-3 text-cyan-400" />
-                </span>
-              </div>
-
-            </div>
-          </div>
-
-          {/* Under-Orb Real Metrics Banner */}
-          <div className="mt-4 text-center z-10">
-            <span className="text-[10px] font-mono text-zinc-400 block">
-              Yamuna Basin Inundation Matrix
-            </span>
-            <span className="text-xs font-mono font-semibold text-cyan-400">
-              Deterministic Traversal Active
-            </span>
-          </div>
-
-        </div>
-
-        {/* RIGHT COLUMN: Precipitation Hyetograph & Cedar Policy Gate */}
-        <div className="lg:col-span-4 flex flex-col justify-between gap-4">
-          
-          {/* Instrument 3: GPM IMERG 72-Hr Hyetograph Rainfall */}
-          <div
-            onMouseEnter={() => setActiveInstrument('rain')}
-            onMouseLeave={() => setActiveInstrument(null)}
-            className={`p-4 rounded-2xl bg-[#070D14]/90 backdrop-blur-xl border transition-all duration-300 shadow-xl flex flex-col justify-between ${
-              activeInstrument === 'rain'
-                ? 'border-blue-400/50 shadow-[0_0_30px_rgba(77,184,255,0.15)] bg-[#0A1420]'
-                : 'border-white/[0.08] hover:border-blue-500/30'
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/[0.06]">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400">
-                    <CloudRain className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold font-heading text-white">GPM IMERG Rainfall</h4>
-                    <span className="text-[10px] font-mono text-zinc-400">NASA 0.1° Precipitation Reanalysis</span>
-                  </div>
-                </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                  72-Hr Storm
-                </span>
-              </div>
-
-              {/* Micro-visual: Hyetograph Bars */}
-              <div className="my-2 p-2.5 rounded-xl bg-[#05090D] border border-white/[0.04]">
-                <div className="flex items-center justify-between text-[9px] font-mono text-zinc-400 mb-1.5">
-                  <span>Hyetograph Distribution</span>
-                  <span className="text-blue-400 font-bold">118.2 mm Total</span>
-                </div>
-                
-                <div className="h-10 flex items-end justify-between gap-1 pt-1">
-                  {rainBars.map((h, i) => (
-                    <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group/rain">
-                      <div
-                        className="w-full rounded-t bg-gradient-to-t from-blue-700 to-blue-400 transition-all group-hover/rain:brightness-125"
-                        style={{ height: `${(h / 118) * 100}%` }}
-                      />
+                    <div className="flex justify-between text-[8px] font-mono text-[#8EA0C4] mt-1">
+                      <span>-24 dB (Water)</span>
+                      <span className="text-[#F59E0B]">-16.5 dB</span>
+                      <span>-7 dB (Land)</span>
                     </div>
-                  ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="text-[10px] font-mono text-[#8EA0C4] pt-1">
+              Sentinel-1: 12 Jul 2023, 00:52 UTC (06:22 IST)
+            </div>
+          </div>
+
+          {/* Card 2: Bottom-Left "Routing" */}
+          <div
+            ref={cardLB}
+            className="glass-card w-full p-4 flex flex-col justify-between"
+            style={{ minHeight: '175px' }}
+          >
+            <div>
+              <div className="flex items-center justify-between pb-2 border-b border-blue-500/15 mb-3">
+                <span className="font-heading font-semibold text-sm text-white tracking-tight">
+                  Routing
+                </span>
+                <span className="pill-tag-card">
+                  Deterministic
+                </span>
+              </div>
+
+              {/* Vertical flow of pills with connecting line & arrows matching Workflows card */}
+              <div className="flex flex-col gap-1.5 relative pl-4 border-l border-blue-400/30 ml-2">
+
+                {/* Step 1 */}
+                <div className="relative">
+                  <div className="absolute -left-[21px] top-1.5 w-2 h-2 rounded-full bg-[#F43F5E] shadow-[0_0_6px_#F43F5E]" />
+                  <div className="px-2.5 py-1 rounded bg-[#02060F]/60 border border-blue-500/20 text-[11px] font-mono text-zinc-200">
+                    Block edges ≥ 0.50
+                  </div>
                 </div>
 
-                <div className="flex justify-between text-[8px] font-mono text-zinc-500 mt-1">
-                  <span>09-JUL 00:00</span>
-                  <span className="text-blue-400">Peak 11-JUL</span>
-                  <span>12-JUL 00:00</span>
+                <div className="text-[10px] text-blue-400/60 pl-1 font-mono">↓</div>
+
+                {/* Step 2 */}
+                <div className="relative">
+                  <div className="absolute -left-[21px] top-1.5 w-2 h-2 rounded-full bg-[#F59E0B]" />
+                  <div className="px-2.5 py-1 rounded bg-[#02060F]/60 border border-blue-500/20 text-[11px] font-mono text-zinc-200">
+                    Penalise 0.40 to 0.50 (×4)
+                  </div>
+                </div>
+
+                <div className="text-[10px] text-blue-400/60 pl-1 font-mono">↓</div>
+
+                {/* Step 3 */}
+                <div className="relative">
+                  <div className="absolute -left-[21px] top-1.5 w-2 h-2 rounded-full bg-[#34D399] shadow-[0_0_6px_#34D399]" />
+                  <div className="px-2.5 py-1 rounded bg-[#02060F]/60 border border-emerald-500/30 text-[11px] font-mono text-[#34D399] font-medium">
+                    Safe route corridor
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <div className="text-[10px] font-mono text-[#8EA0C4] pt-2">
+              No LLM in the routing step
+            </div>
+          </div>
+
+        </div>
+
+        {/* ── CENTER COLUMN (Three.js Orb, ~260px) ── */}
+        <div ref={orbRef} className="w-full lg:w-[340px] flex items-center justify-center">
+          <HeroSphereCanvas nodeCount={nodeCount} />
+        </div>
+
+        {/* ── RIGHT COLUMN (2 Cards, ~300px width, 24px vertical gap) ── */}
+        <div className="w-full lg:w-[300px] flex flex-col gap-6">
+
+          {/* Card 3: Top-Right "Rainfall" */}
+          <div
+            ref={cardRT}
+            className="glass-card w-full p-4 flex flex-col justify-between"
+            style={{ minHeight: '175px' }}
+          >
+            <div>
+              <div className="flex items-center justify-between pb-2 border-b border-blue-500/15 mb-2">
+                <span className="font-heading font-semibold text-sm text-white tracking-tight">
+                  Rainfall
+                </span>
+                <span className="pill-tag-card text-[#5AA9FF]">
+                  118.2 mm
+                </span>
+              </div>
+
+              {/* Real 7-day daily bar chart from Open-Meteo (08 to 14 Jul) */}
+              <div className="pt-2">
+                <div className="h-14 flex items-end justify-between gap-1.5">
+                  {rainfallDays.map((d, i) => {
+                    const heightPct = Math.round((d.val / maxRain) * 100)
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group/bar">
+                        <div
+                          className={`w-full rounded-t transition-all ${d.isPeak
+                              ? 'bg-gradient-to-t from-blue-600 to-[#5AA9FF] shadow-[0_0_8px_rgba(90,169,255,0.4)]'
+                              : 'bg-blue-600/40 group-hover/bar:bg-blue-500/70'
+                            }`}
+                          style={{ height: `${heightPct}%` }}
+                          title={`${d.day}: ${d.val} mm`}
+                        />
+                        <span className="text-[8px] font-mono text-[#8EA0C4] mt-1 leading-none">
+                          {d.day.split(' ')[0]}
+                        </span>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             </div>
 
-            <div className="pt-2 border-t border-white/[0.04] flex items-center justify-between text-[10px] font-mono">
-              <span className="text-zinc-400">Storm Normalization</span>
-              <span className="text-blue-400 font-bold">118.2 mm Normalized Weight</span>
+            <div className="flex items-center justify-between text-[10px] font-mono text-[#8EA0C4] pt-2 border-t border-blue-500/10">
+              <span>Peak: 8 Jul (36.1 mm)</span>
+              <span className="text-[#5AA9FF]">Open-Meteo</span>
             </div>
           </div>
 
-          {/* Instrument 4: AWS Cedar Formal Policy Gate */}
+          {/* Card 4: Bottom-Right "Policy gate" */}
           <div
-            onMouseEnter={() => setActiveInstrument('cedar')}
-            onMouseLeave={() => setActiveInstrument(null)}
-            className={`p-4 rounded-2xl bg-[#070D14]/90 backdrop-blur-xl border transition-all duration-300 shadow-xl flex flex-col justify-between ${
-              activeInstrument === 'cedar'
-                ? 'border-violet-400/50 shadow-[0_0_30px_rgba(167,139,250,0.15)] bg-[#0A1420]'
-                : 'border-white/[0.08] hover:border-violet-500/30'
-            }`}
+            ref={cardRB}
+            className="glass-card w-full p-4 flex flex-col justify-between"
+            style={{ minHeight: '175px' }}
           >
             <div>
-              <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/[0.06]">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-violet-500/10 border border-violet-500/30 text-violet-400">
-                    <ShieldCheck className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold font-heading text-white">AWS Cedar Gate</h4>
-                    <span className="text-[10px] font-mono text-zinc-400">Rust Execution · Zero Hallucination</span>
-                  </div>
-                </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20">
+              <div className="flex items-center justify-between pb-2 border-b border-blue-500/15 mb-3">
+                <span className="font-heading font-semibold text-sm text-white tracking-tight">
+                  Policy gate
+                </span>
+                <span className="pill-tag-card">
                   cedarpy
                 </span>
               </div>
 
-              {/* Micro-visual: Cedar Invariant Checklist */}
-              <div className="my-2 p-2.5 rounded-xl bg-[#05090D] border border-white/[0.04] font-mono text-[9px] space-y-1">
-                <div className="flex items-center justify-between text-zinc-300">
-                  <span>[✓] Principal in Role::EmergencyManager</span>
-                  <span className="text-emerald-400 font-bold">VERIFIED</span>
-                </div>
-                <div className="flex items-center justify-between text-zinc-300">
-                  <span>[✓] Action == Action::SendAlert</span>
-                  <span className="text-emerald-400 font-bold">LOCKED</span>
-                </div>
-                <div className="flex items-center justify-between text-zinc-300">
-                  <span>[✓] Invariant: flood_pct &gt; 85%</span>
-                  <span className="text-cyan-400 font-bold">REQUIRED</span>
-                </div>
-                <div className="flex items-center justify-between text-zinc-300">
-                  <span>[✓] validation_source == "Sentinel-1"</span>
-                  <span className="text-cyan-400 font-bold">SAR ONLY</span>
+              {/* Horizontally scrolling real demo segment verification pills */}
+              <div className="pill-scroller py-2">
+                <div className="pill-scroller-content">
+
+                  {/* Red Blocked Pill */}
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-950/40 border border-[#F43F5E]/40 text-[11px] font-mono text-[#F43F5E] shadow-[0_0_12px_rgba(244,63,94,0.15)]">
+                    <ShieldAlert className="w-3.5 h-3.5" />
+                    <span>BLOCKED Sansad Marg 41% model</span>
+                  </div>
+
+                  {/* Green Allowed Pill */}
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-950/40 border border-[#34D399]/40 text-[11px] font-mono text-[#34D399] shadow-[0_0_12px_rgba(52,211,153,0.15)]">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>ALLOWED Unnamed road 91% Sentinel-1</span>
+                  </div>
+
+                  {/* Duplicate for infinite loop */}
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-950/40 border border-[#F43F5E]/40 text-[11px] font-mono text-[#F43F5E]">
+                    <ShieldAlert className="w-3.5 h-3.5" />
+                    <span>BLOCKED Sansad Marg 41% model</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-950/40 border border-[#34D399]/40 text-[11px] font-mono text-[#34D399]">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>ALLOWED Unnamed road 91% Sentinel-1</span>
+                  </div>
+
                 </div>
               </div>
             </div>
 
-            <div className="pt-2 border-t border-white/[0.04] flex items-center justify-between text-[10px] font-mono">
-              <span className="text-zinc-400">Public False Alarms</span>
-              <span className="text-emerald-400 font-bold">100% Mathematically Blocked</span>
+            <div className="text-[10px] font-mono text-[#8EA0C4] pt-2">
+              Blocked by policy, evaluated outside the LLM
             </div>
           </div>
 

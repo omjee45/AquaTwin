@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ArrowRight, BookOpen, ShieldCheck, Database, Cpu, ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { ArrowRight, ArrowLeft, ExternalLink } from 'lucide-react'
 
 export default function Documentation({ onBackToCommand }) {
   const [activeArticle, setActiveArticle] = useState(null)
@@ -9,11 +9,11 @@ export default function Documentation({ onBackToCommand }) {
       id: 'simulator',
       tag: 'THE SIMULATOR',
       title: 'How deterministic routing actually works',
-      text: 'NetworkX graph of OSM edges. Edges with flood probability ≥ 0.50 are blocked; model-risk edges (0.40-0.50) carry a 4× traversal cost penalty.',
+      text: 'NetworkX graph of OSM edges. Edges with flood probability ≥ 0.50 are blocked; risk edges (0.40-0.50) carry a 4× traversal cost penalty.',
       linkText: 'Read technical details ->',
-      color: '#00E5B0',
+      color: '#34D399',
       content: {
-        intro: 'AquaTwin strictly isolates the AI agent from hydrologic pathfinding. The routing engine is 100% deterministic code executing over a physical road network.',
+        intro: 'No LLM in the routing step. AquaTwin strictly isolates the AI agent from hydrologic pathfinding. The routing engine is 100% deterministic code executing over a physical road network.',
         sections: [
           {
             heading: '1. Network Topology',
@@ -25,7 +25,7 @@ export default function Documentation({ onBackToCommand }) {
           },
           {
             heading: '3. Real Operational Benchmark',
-            body: 'Ambulance 4 (Near Qutab Road) to Lok Nayak Hospital:\n• Default unconstrained route: 5.386 km (crosses inundated corridor)\n• Safe route: 6.814 km (+1.428 km detour), successfully bypassing all 93 model-risk and radar-inundated edges.'
+            body: 'Ambulance 4 (Near Qutab Road) to Lok Nayak Hospital:\n• Default unconstrained route: 5.386 km (crosses inundated corridor)\n• Safe route: 6.814 km (+1.428 km detour), successfully bypassing all model-risk and radar-inundated edges.'
           }
         ]
       }
@@ -34,23 +34,27 @@ export default function Documentation({ onBackToCommand }) {
       id: 'data',
       tag: 'DATA ACCURACY',
       title: 'Where every number comes from',
-      text: 'Sentinel-1A RTC interferometric scene (Otsu water mask), Copernicus 30m HAND low-lying zones, and historical cumulative precipitation.',
+      text: 'Sentinel-1A RTC interferometric scene (fixed -16.5 dB water mask), Simplified HAND from Copernicus 30 m DEM, and Open-Meteo precipitation reanalysis.',
       linkText: 'Read data provenance ->',
-      color: '#00D4FF',
+      color: '#22D3EE',
       content: {
         intro: 'Every flood probability is grounded in physical satellite radar, digital elevation modeling, and storm precipitation measurements from the Delhi July 2023 flood event.',
         sections: [
           {
             heading: '1. Sentinel-1 SAR Radar (Ground Truth)',
-            body: 'Radiometrically Terrain Corrected (RTC) VV polarization scene S1A_IW_GRDH_1SDV_20230712T005233 acquired 12-Jul-2023 00:52 UTC. Automatic Otsu thresholding at -16.5 dB identifies 1.898 km² of open water across 82 polygons.'
+            body: 'Radiometrically Terrain Corrected (RTC) VV polarization scene S1A_IW_GRDH_1SDV_20230712T005233 acquired 12 Jul 2023, 00:52 UTC (06:22 IST). Fixed thresholding at -16.5 dB identifies 1.898 km² of open water across 82 polygons.'
           },
           {
-            heading: '2. Copernicus 30m DEM & HAND',
+            heading: '2. Simplified HAND from Copernicus 30 m DEM',
             body: 'Height Above Nearest Drainage (HAND) derived from Copernicus GLO-30 elevation data models relative drainage potential and isolates depressions prone to rapid waterlogging.'
           },
           {
-            heading: '3. Storm Rainfall Reanalysis',
-            body: 'GPM IMERG cumulative precipitation analysis records 118.2 mm over NCT Delhi during the peak 72-hour storm window, providing rainfall normalization weights.'
+            heading: '3. Storm Rainfall Reanalysis (Open-Meteo)',
+            body: 'Open-Meteo historical weather reanalysis records 118.2 mm total precipitation over NCT Delhi between 08 Jul and 14 Jul 2023, peaking on 08 Jul at 36.1 mm.'
+          },
+          {
+            heading: '4. Yamuna Water Level Record Source',
+            body: 'Central Water Commission (CWC) Official Bulletin & Press Information Bureau (PIB Delhi):\nOn 13 July 2023, the Yamuna river at the Old Railway Bridge (ORB) Delhi reached its all-time historical peak of 208.66 m, standing 3.33 m above the danger level mark of 205.33 m (exceeding the previous 1978 record of 207.49 m).'
           }
         ]
       }
@@ -61,9 +65,9 @@ export default function Documentation({ onBackToCommand }) {
       title: 'How the security gate protects the public',
       text: 'AWS Cedar policy enforces role authorization and requires flood_pct > 85 with Sentinel-1 radar confirmation before allowing any public evacuation alert.',
       linkText: 'Read policy specification ->',
-      color: '#FFB347',
+      color: '#F59E0B',
       content: {
-        intro: 'To prevent dangerous hallucinations and false alarms, public emergency alerts must pass a formal Cedar security policy executed natively in Rust (cedarpy).',
+        intro: 'Blocked by policy, evaluated outside the LLM. To prevent false alarms, public emergency alerts must pass a formal Cedar security policy executed in cedarpy.',
         sections: [
           {
             heading: '1. Cedar Policy Definition (cedar/policy.cedar)',
@@ -83,34 +87,39 @@ export default function Documentation({ onBackToCommand }) {
   ]
 
   return (
-    <div className="w-full min-h-[calc(100vh-var(--nav-h))] bg-[#05090D] py-10 px-6">
-      <div className="max-w-6xl mx-auto space-y-10">
+    <div
+      className="w-full min-h-[calc(100vh-var(--nav-h))] py-12 px-6"
+      style={{
+        marginTop: 'var(--nav-h)', // Fix: toolbar sits strictly below the nav and never overlaps it
+      }}
+    >
+      <div className="max-w-[1200px] mx-auto space-y-10">
         
-        {/* Top Breadcrumb / Navigation */}
-        <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
+        {/* Top Breadcrumb / Navigation Toolbar */}
+        <div className="flex items-center justify-between border-b border-blue-500/15 pb-4">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 uppercase tracking-wider">
+            <span className="pill-status">
               DOCUMENTATION
             </span>
-            <span className="text-xs font-mono text-zinc-500">/ Technical Architecture</span>
+            <span className="text-xs font-mono text-[#8EA0C4]">/ Technical Architecture</span>
           </div>
           {onBackToCommand && (
             <button
               onClick={onBackToCommand}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#070D14] hover:bg-[#0A1420] border border-white/[0.08] text-xs font-mono text-zinc-300 hover:text-white transition-all active:scale-95"
+              className="btn-secondary py-1.5 px-3 text-xs"
             >
-              <ArrowLeft className="w-3.5 h-3.5 text-cyan-400" />
+              <ArrowLeft className="w-3.5 h-3.5 text-[#5AA9FF]" />
               <span>Back to Command Center</span>
             </button>
           )}
         </div>
 
-        {/* Header matching requested text */}
+        {/* Header */}
         <div className="space-y-2">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold font-heading text-white tracking-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-light font-heading text-white tracking-tight">
             Every claim, with its source
           </h1>
-          <p className="text-base text-zinc-400 font-mono max-w-3xl leading-relaxed">
+          <p className="text-base text-[#8EA0C4] font-sans max-w-3xl leading-relaxed">
             Ground-truth data provenance, deterministic NetworkX routing formulas, and Cedar security proofs.
           </p>
         </div>
@@ -121,21 +130,21 @@ export default function Documentation({ onBackToCommand }) {
             <div
               key={card.id}
               onClick={() => setActiveArticle(card.id)}
-              className="p-6 rounded-[22px] bg-[#070D14]/90 backdrop-blur-xl border border-white/[0.08] hover:border-cyan-500/40 transition-all duration-300 cursor-pointer flex flex-col justify-between space-y-5 hover:shadow-[0_12px_36px_rgba(0,212,255,0.08)] group active:scale-[0.99] relative overflow-hidden"
+              className="glass-card p-6 cursor-pointer flex flex-col justify-between space-y-5 group relative overflow-hidden"
             >
               <div className="space-y-3">
                 <span
                   style={{ color: card.color }}
-                  className="text-[11px] font-mono font-bold tracking-wider uppercase block"
+                  className="text-[11px] font-mono font-medium tracking-wider uppercase block"
                 >
                   {card.tag}
                 </span>
 
-                <h3 className="text-lg font-bold font-heading text-zinc-100 group-hover:text-white transition-colors leading-snug">
+                <h3 className="text-lg font-semibold font-heading text-zinc-100 group-hover:text-white transition-colors leading-snug">
                   {card.title}
                 </h3>
 
-                <p className="text-xs text-zinc-400 font-mono leading-relaxed">
+                <p className="text-xs text-[#8EA0C4] font-sans leading-relaxed">
                   {card.text}
                 </p>
               </div>
@@ -152,41 +161,44 @@ export default function Documentation({ onBackToCommand }) {
 
         {/* Expanded Article Modal / Detail Pane */}
         {activeArticle && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md">
-            <div className="w-full max-w-3xl max-h-[85vh] rounded-[20px] bg-[#070D14] border border-white/[0.12] flex flex-col overflow-hidden shadow-2xl">
-              
-              {/* Modal Header */}
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md"
+            onClick={() => setActiveArticle(null)}
+          >
+            <div
+              className="w-full max-w-3xl max-h-[85vh] rounded-2xl bg-[#050B1E] border border-blue-500/30 flex flex-col overflow-hidden shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
               {(() => {
                 const current = cards.find(c => c.id === activeArticle)
                 return (
                   <>
-                    <div className="flex items-center justify-between p-5 border-b border-white/[0.08] bg-[#05090D]">
+                    <div className="flex items-center justify-between p-5 border-b border-blue-500/15 bg-[#02060F]">
                       <div>
-                        <span style={{ color: current.color }} className="text-[10px] font-mono font-bold uppercase tracking-wider block">
+                        <span style={{ color: current.color }} className="text-[10px] font-mono font-medium uppercase tracking-wider block">
                           {current.tag}
                         </span>
-                        <h3 className="text-lg font-bold font-heading text-white">
+                        <h3 className="text-lg font-semibold font-heading text-white">
                           {current.title}
                         </h3>
                       </div>
                       <button
                         onClick={() => setActiveArticle(null)}
-                        className="p-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-zinc-400 hover:text-white transition-all text-xs font-mono px-3"
+                        className="btn-secondary py-1 px-3 text-xs"
                       >
                         Close
                       </button>
                     </div>
 
-                    {/* Modal Body */}
                     <div className="p-6 overflow-y-auto space-y-5 font-mono text-xs text-zinc-300 leading-relaxed">
-                      <p className="text-sm text-zinc-400 border-b border-white/[0.06] pb-3">
+                      <p className="text-sm text-[#8EA0C4] border-b border-blue-500/15 pb-3">
                         {current.content.intro}
                       </p>
 
                       <div className="space-y-4">
                         {current.content.sections.map((sec, idx) => (
-                          <div key={idx} className="p-4 rounded-xl bg-[#05090D] border border-white/[0.06] space-y-2">
-                            <h4 style={{ color: current.color }} className="text-xs font-bold uppercase tracking-wider">
+                          <div key={idx} className="p-4 rounded-xl bg-[#02060F]/80 border border-blue-500/15 space-y-2">
+                            <h4 style={{ color: current.color }} className="text-xs font-semibold uppercase tracking-wider">
                               {sec.heading}
                             </h4>
                             <pre className="text-zinc-200 text-[11px] whitespace-pre-wrap font-mono leading-relaxed">
@@ -199,7 +211,6 @@ export default function Documentation({ onBackToCommand }) {
                   </>
                 )
               })()}
-
             </div>
           </div>
         )}

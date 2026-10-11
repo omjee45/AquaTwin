@@ -1,199 +1,263 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 
-export default function HeroSphereCanvas() {
+export default function HeroSphereCanvas({ nodeCount = '14,904' }) {
   const mountRef = useRef(null)
+  const [hasWebGL, setHasWebGL] = useState(true)
 
   useEffect(() => {
     const mount = mountRef.current
     if (!mount) return
 
+    // Reduced motion check
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
-    // 1. Scene setup
-    const w = mount.clientWidth || window.innerWidth || 800
-    const h = mount.clientHeight || window.innerHeight || 600
-
-    const scene = new THREE.Scene()
-    const camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 1000)
-    camera.position.z = 4.8
-
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
-    renderer.setSize(w, h)
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
-    mount.appendChild(renderer.domElement)
-
-    // 2. Vertex & Fragment Shader with Simplex Noise
-    const vertexShader = `
-      uniform float uTime;
-      uniform vec2 uMouse;
-      uniform float uDistort;
-      attribute vec3 aNormal;
-      varying vec3 vNormal;
-      varying float vDist;
-
-      // 3D Simplex Noise generator
-      vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-      vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-      vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
-      vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
-
-      float snoise(vec3 v) {
-        const vec2 C = vec2(1.0/6.0, 1.0/3.0);
-        const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
-        vec3 i  = floor(v + dot(v, C.yyy));
-        vec3 x0 = v - i + dot(i, C.xxx);
-        vec3 g = step(x0.yzx, x0.xyz);
-        vec3 l = 1.0 - g;
-        vec3 i1 = min(g.xyz, l.zxy);
-        vec3 i2 = max(g.xyz, l.zxy);
-        vec3 x1 = x0 - i1 + C.xxx;
-        vec3 x2 = x0 - i2 + C.yyy;
-        vec3 x3 = x0 - D.yyy;
-        i = mod289(i);
-        vec4 p = permute(permute(permute(
-                  i.z + vec4(0.0, i1.z, i2.z, 1.0))
-                + i.y + vec4(0.0, i1.y, i2.y, 1.0))
-                + i.x + vec4(0.0, i1.x, i2.x, 1.0));
-        float n_ = 0.142857142857;
-        vec3 ns = n_ * D.wyz - D.xzx;
-        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
-        vec4 x_ = floor(j * ns.z);
-        vec4 y_ = floor(j - 7.0 * x_);
-        vec4 x = x_ *ns.x + ns.yyyy;
-        vec4 y = y_ *ns.x + ns.yyyy;
-        vec4 h = 1.0 - abs(x) - abs(y);
-        vec4 b0 = vec4(x.xy, y.xy);
-        vec4 b1 = vec4(x.zw, y.zw);
-        vec4 s0 = floor(b0)*2.0 + 1.0;
-        vec4 s1 = floor(b1)*2.0 + 1.0;
-        vec4 sh = -step(h, vec4(0.0));
-        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
-        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
-        vec3 p0 = vec3(a0.xy, h.x);
-        vec3 p1 = vec3(a0.zw, h.y);
-        vec3 p2 = vec3(a1.xy, h.z);
-        vec3 p3 = vec3(a1.zw, h.w);
-        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
-        p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
-        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
-        m = m * m;
-        return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
-      }
-
-      void main() {
-        vNormal = normal;
-        vec3 pos = position;
-        
-        // Simplex noise wave displacement over time
-        float noise = snoise(pos * 1.8 + vec3(uTime * 0.45));
-        
-        // Extra cursor proximity distortion
-        vec4 screenPos = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-        vec2 normScreen = screenPos.xy / screenPos.w;
-        float mouseDist = distance(normScreen, uMouse);
-        float mouseWave = smoothstep(1.2, 0.0, mouseDist) * uDistort * 0.35;
-
-        pos += normal * (noise * 0.22 + mouseWave);
-        vDist = noise;
-
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-        gl_PointSize = (1.8 + noise * 1.2) * (180.0 / -screenPos.z);
-      }
-    `
-
-    const fragmentShader = `
-      varying vec3 vNormal;
-      varying float vDist;
-
-      void main() {
-        // Ethereal starry graphite silver with subtle emerald radar phosphor
-        vec3 baseColor = mix(vec3(0.82, 0.85, 0.90), vec3(0.25, 0.82, 0.55), clamp(vDist * 0.4, 0.0, 1.0));
-        float alpha = 0.20 + vDist * 0.15;
-        
-        // Circular soft particles
-        vec2 coord = gl_PointCoord - vec2(0.5);
-        if (length(coord) > 0.5) discard;
-
-        gl_FragColor = vec4(baseColor, alpha);
-      }
-    `
-
-    // 3. Icosahedron with ~4,500 points (detail=5)
-    const geometry = new THREE.IcosahedronGeometry(2.1, 5)
-
-    const uniforms = {
-      uTime: { value: 0 },
-      uMouse: { value: new THREE.Vector2(0, 0) },
-      uDistort: { value: prefersReducedMotion ? 0.0 : 1.0 }
+    if (prefersReducedMotion) {
+      setHasWebGL(false)
+      return
     }
 
-    const material = new THREE.ShaderMaterial({
-      vertexShader,
-      fragmentShader,
-      uniforms,
+    // Canvas dimensions (260px square)
+    const size = 260
+    const scene = new THREE.Scene()
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100)
+    camera.position.z = 3.6
+
+    let renderer
+    try {
+      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'high-performance' })
+      renderer.setSize(size, size)
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75))
+      mount.appendChild(renderer.domElement)
+    } catch (e) {
+      setHasWebGL(false)
+      return
+    }
+
+    // ── 1. Central Core Sphere with Custom ShaderMaterial (Fresnel Rim + Swirl) ──
+    const sphereGeo = new THREE.SphereGeometry(1.0, 48, 48)
+    const sphereShaderMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: { value: 0 },
+        uRimColor: { value: new THREE.Color('#3B82F6') },
+        uCoreColor: { value: new THREE.Color('#030A1F') },
+        uHighlight: { value: new THREE.Color('#93C5FD') },
+      },
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vViewDir;
+        varying vec3 vPosition;
+
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+          vViewDir = normalize(-mvPos.xyz);
+          vPosition = position;
+          gl_Position = projectionMatrix * mvPos;
+        }
+      `,
+      fragmentShader: `
+        uniform float uTime;
+        uniform vec3 uRimColor;
+        uniform vec3 uCoreColor;
+        uniform vec3 uHighlight;
+        varying vec3 vNormal;
+        varying vec3 vViewDir;
+        varying vec3 vPosition;
+
+        void main() {
+          float fresnel = 1.0 - max(dot(vNormal, vViewDir), 0.0);
+          float rim = pow(fresnel, 2.8);
+          float softGlow = pow(fresnel, 1.4) * 0.45;
+
+          // Subtle internal wave noise
+          float wave = sin(vPosition.y * 5.0 + uTime * 1.5) * 0.5 + 0.5;
+          float wave2 = cos(vPosition.x * 4.0 - uTime * 1.2) * 0.5 + 0.5;
+          vec3 internalSwirl = mix(uCoreColor, uRimColor * 0.4, wave * wave2 * 0.5);
+
+          vec3 finalColor = mix(internalSwirl, uRimColor, rim);
+          finalColor += uHighlight * pow(fresnel, 5.0) * 0.8;
+
+          float alpha = clamp(0.75 + rim * 0.35, 0.0, 1.0);
+          gl_FragColor = vec4(finalColor, alpha);
+        }
+      `,
       transparent: true,
-      depthWrite: false
+      depthWrite: true,
     })
+    const coreSphere = new THREE.Mesh(sphereGeo, sphereShaderMat)
+    scene.add(coreSphere)
 
-    const points = new THREE.Points(geometry, material)
-    scene.add(points)
+    // ── 2. 8 to 10 Thin Ribbon Loops (LineLoop tilted ellipses with noise) ──
+    const ribbonGroup = new THREE.Group()
+    const ribbonCount = 9
+    const ribbons = []
 
-    // Subtle neutral wireframe architectural layer (almost invisible, zero blue glare)
-    const wireframeMat = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      wireframe: true,
+    for (let i = 0; i < ribbonCount; i++) {
+      const radius = 1.03 + (i / ribbonCount) * 0.16 // Radii 1.03 to 1.19
+      const points = []
+      const segments = 120
+
+      // Slightly deformed tilted ellipse
+      for (let j = 0; j <= segments; j++) {
+        const theta = (j / segments) * Math.PI * 2
+        const rNoise = 1.0 + Math.sin(theta * 3.0 + i) * 0.025
+        const x = Math.cos(theta) * radius * rNoise
+        const y = Math.sin(theta) * (radius * 0.94) * rNoise
+        const z = Math.sin(theta * 2.0) * 0.08
+        points.push(new THREE.Vector3(x, y, z))
+      }
+
+      const loopGeo = new THREE.BufferGeometry().setFromPoints(points)
+      // Colors from deep blue to near-white
+      const colorMix = i / (ribbonCount - 1)
+      const ribbonColor = new THREE.Color().lerpColors(
+        new THREE.Color('#2563EB'),
+        new THREE.Color('#E0F2FE'),
+        colorMix
+      )
+
+      const loopMat = new THREE.LineBasicMaterial({
+        color: ribbonColor,
+        transparent: true,
+        opacity: 0.55 + colorMix * 0.35,
+        blending: THREE.AdditiveBlending,
+        linewidth: 1,
+      })
+
+      const lineLoop = new THREE.LineLoop(loopGeo, loopMat)
+
+      // Tilt each ellipse on different axes
+      lineLoop.rotation.x = (i * Math.PI) / 4 + (i * 0.2)
+      lineLoop.rotation.y = (i * Math.PI) / 3.5
+      lineLoop.rotation.z = i * 0.45
+
+      const speedX = (0.2 + (i % 3) * 0.12) * (i % 2 === 0 ? 1 : -1)
+      const speedY = (0.15 + (i % 4) * 0.08) * (i % 2 === 0 ? -1 : 1)
+
+      ribbonGroup.add(lineLoop)
+      ribbons.push({ loop: lineLoop, speedX, speedY })
+    }
+    scene.add(ribbonGroup)
+
+    // ── 3. Shell of ~1,500 Tiny Luminous Points ──
+    const pointCount = 1400
+    const pointPositions = new Float32Array(pointCount * 3)
+    for (let i = 0; i < pointCount; i++) {
+      // Points on a spherical shell of radius 1.12 to 1.35
+      const u = Math.random()
+      const v = Math.random()
+      const theta = u * 2.0 * Math.PI
+      const phi = Math.acos(2.0 * v - 1.0)
+      const r = 1.12 + Math.random() * 0.24
+
+      pointPositions[i * 3] = r * Math.sin(phi) * Math.cos(theta)
+      pointPositions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta)
+      pointPositions[i * 3 + 2] = r * Math.cos(phi)
+    }
+
+    const pointGeo = new THREE.BufferGeometry()
+    pointGeo.setAttribute('position', new THREE.BufferAttribute(pointPositions, 3))
+    const pointMat = new THREE.PointsMaterial({
+      color: '#60A5FA',
+      size: 0.022,
       transparent: true,
-      opacity: 0.025
+      opacity: 0.65,
+      blending: THREE.AdditiveBlending,
     })
-    const wireMesh = new THREE.Mesh(geometry, wireframeMat)
-    scene.add(wireMesh)
+    const pointCloud = new THREE.Points(pointGeo, pointMat)
+    scene.add(pointCloud)
 
-    // 4. Mouse movement tracking
+    // ── 4. Soft Outer Halo (Glow Sprite) ──
+    const createHaloTexture = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = 128
+      canvas.height = 128
+      const ctx = canvas.getContext('2d')
+      const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 64)
+      grad.addColorStop(0, 'rgba(59, 130, 246, 0.45)')
+      grad.addColorStop(0.35, 'rgba(37, 99, 235, 0.18)')
+      grad.addColorStop(0.7, 'rgba(29, 78, 216, 0.05)')
+      grad.addColorStop(1, 'rgba(0, 0, 0, 0)')
+      ctx.fillStyle = grad
+      ctx.fillRect(0, 0, 128, 128)
+      return new THREE.CanvasTexture(canvas)
+    }
+
+    const haloMat = new THREE.SpriteMaterial({
+      map: createHaloTexture(),
+      blending: THREE.AdditiveBlending,
+      transparent: true,
+      opacity: 0.85,
+    })
+    const haloSprite = new THREE.Sprite(haloMat)
+    haloSprite.scale.set(3.2, 3.2, 1.0)
+    scene.add(haloSprite)
+
+    // ── 5. Mouse Parallax & Intersection Observer ──
+    let mouseX = 0
+    let mouseY = 0
+    let targetX = 0
+    let targetY = 0
+
     const handleMouseMove = (e) => {
       const rect = mount.getBoundingClientRect()
-      const x = ((e.clientX - rect.left) / mount.clientWidth) * 2 - 1
-      const y = -(((e.clientY - rect.top) / mount.clientHeight) * 2 - 1)
-      uniforms.uMouse.value.set(x, y)
+      const cx = rect.left + rect.width / 2
+      const cy = rect.top + rect.height / 2
+      targetX = (e.clientX - cx) * 0.0006
+      targetY = (e.clientY - cy) * 0.0006
     }
+    window.addEventListener('mousemove', handleMouseMove, { passive: true })
 
-    window.addEventListener('mousemove', handleMouseMove)
+    // Pause when off-screen
+    let isVisible = true
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting
+      },
+      { threshold: 0.1 }
+    )
+    observer.observe(mount)
 
-    // 5. Animation loop
-    let clock = new THREE.Clock()
-    let reqId
+    // ── 6. Animation Loop ──
+    let animId
+    const clock = new THREE.Clock()
 
     const animate = () => {
-      reqId = requestAnimationFrame(animate)
+      animId = requestAnimationFrame(animate)
+      if (!isVisible) return
+
+      const delta = clock.getDelta()
       const elapsed = clock.getElapsedTime()
 
-      if (!prefersReducedMotion) {
-        uniforms.uTime.value = elapsed
-        points.rotation.y = elapsed * 0.08
-        points.rotation.x = elapsed * 0.04
-        wireMesh.rotation.y = elapsed * 0.08
-        wireMesh.rotation.x = elapsed * 0.04
-      }
+      // Smooth mouse parallax
+      mouseX += (targetX - mouseX) * 0.05
+      mouseY += (targetY - mouseY) * 0.05
+
+      scene.rotation.y = mouseX
+      scene.rotation.x = mouseY
+
+      // Update shader time
+      sphereShaderMat.uniforms.uTime.value = elapsed
+
+      // Rotate ribbons at distinct speeds
+      ribbons.forEach(({ loop, speedX, speedY }) => {
+        loop.rotation.x += speedX * delta * 0.6
+        loop.rotation.y += speedY * delta * 0.8
+      })
+
+      // Point cloud gentle spin
+      pointCloud.rotation.y = elapsed * 0.08
+      pointCloud.rotation.z = elapsed * 0.04
 
       renderer.render(scene, camera)
     }
 
     animate()
 
-    // Resize handler
-    const handleResize = () => {
-      if (!mount) return
-      camera.aspect = mount.clientWidth / mount.clientHeight
-      camera.updateProjectionMatrix()
-      renderer.setSize(mount.clientWidth, mount.clientHeight)
-    }
-
-    window.addEventListener('resize', handleResize)
-
     return () => {
+      cancelAnimationFrame(animId)
       window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('resize', handleResize)
-      cancelAnimationFrame(reqId)
+      observer.disconnect()
       if (mount && renderer.domElement) {
         mount.removeChild(renderer.domElement)
       }
@@ -202,9 +266,36 @@ export default function HeroSphereCanvas() {
   }, [])
 
   return (
-    <div
-      ref={mountRef}
-      className="absolute inset-0 w-full h-full pointer-events-none opacity-60 z-0 overflow-hidden"
-    />
+    <div className="flex flex-col items-center justify-center relative select-none">
+      
+      {/* 260px Three.js Canvas Container */}
+      <div
+        ref={mountRef}
+        style={{ width: '260px', height: '260px' }}
+        className="relative flex items-center justify-center"
+      >
+        {!hasWebGL && (
+          /* CSS Fallback for Reduced Motion or no WebGL */
+          <div
+            className="w-56 h-56 rounded-full"
+            style={{
+              background: 'radial-gradient(circle at 35% 35%, #93C5FD 0%, #3B82F6 40%, #030A1F 80%)',
+              boxShadow: '0 0 50px rgba(59, 130, 246, 0.5), inset 0 0 20px rgba(147, 197, 253, 0.4)',
+            }}
+          />
+        )}
+      </div>
+
+      {/* Caption under the orb */}
+      <div className="mt-3 text-center">
+        <span
+          className="font-mono text-[11px] font-normal tracking-wide text-[#8EA0C4]"
+          style={{ textShadow: '0 0 12px rgba(59, 130, 246, 0.3)' }}
+        >
+          NCT Delhi floodplain · {nodeCount} nodes loaded
+        </span>
+      </div>
+
+    </div>
   )
 }

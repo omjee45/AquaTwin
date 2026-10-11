@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Send, Terminal, AlertTriangle, ArrowRight, Sparkles, Navigation, ShieldAlert, ShieldCheck } from 'lucide-react'
+import { Send, Terminal, AlertTriangle, ArrowRight, Sparkles, Navigation, ShieldAlert, ShieldCheck, Cpu } from 'lucide-react'
 
 export default function AIPanel({
   trace,
@@ -27,23 +27,23 @@ export default function AIPanel({
   const chips = [
     {
       label: `Safe route for Ambulance 4 to LNJP`,
-      sub: 'Deterministic detour bypassing 93 flooded edges',
+      sub: 'Deterministic detour bypassing flooded edges',
       icon: Navigation,
-      iconColor: 'text-cyan-400',
+      iconColor: 'text-[#5AA9FF]',
       query: `Check flood status and route ambulance from Ambulance 4 start (Near Qutab Road) to ${hospitalName}.`
     },
     {
       label: `Send alert for ${blockedRoadName}`,
-      sub: 'Low confidence (41%) • Expect Cedar DENY',
+      sub: 'Unconfirmed model (41%) • Expect Cedar DENY',
       icon: ShieldAlert,
-      iconColor: 'text-rose-400',
+      iconColor: 'text-[#F43F5E]',
       query: `Dispatch emergency evacuation alert for Sansad Marg segment 5799663725_4083435383_0.`
     },
     {
       label: `Send alert for ${allowedRoadName}`,
       sub: 'Radar confirmed (91%) • Expect Cedar ALLOW',
       icon: ShieldCheck,
-      iconColor: 'text-emerald-400',
+      iconColor: 'text-[#34D399]',
       query: `Broadcast emergency flood alert for confirmed high-risk radar segment 9789474393_9789474394_0.`
     }
   ]
@@ -51,11 +51,11 @@ export default function AIPanel({
   return (
     <div className="space-y-4">
       
-      {/* llm_unavailable state: amber banner, chat disabled, manual route button */}
+      {/* llm_unavailable state */}
       {llmUnavailable && (
-        <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 flex items-center justify-between gap-3 text-xs font-mono shadow-lg">
+        <div className="p-3.5 rounded-xl bg-amber-950/30 border border-[#F59E0B]/40 text-[#F59E0B] flex items-center justify-between gap-3 text-xs font-mono shadow-lg">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 flex-shrink-0 text-amber-400" />
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
             <div>
               <strong className="text-amber-200">LLM Throttled:</strong> {llmReason || 'Model quota reached. Deterministic engine ready.'}
             </div>
@@ -63,7 +63,7 @@ export default function AIPanel({
           <button
             onClick={onManualRoute}
             disabled={isLoading}
-            className="px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs whitespace-nowrap transition-all active:scale-95 disabled:opacity-50"
+            className="px-3 py-1.5 rounded-lg bg-[#F59E0B] hover:bg-amber-300 text-black font-bold text-xs whitespace-nowrap transition-all active:scale-95 disabled:opacity-50"
           >
             Manual route
           </button>
@@ -71,16 +71,36 @@ export default function AIPanel({
       )}
 
       {/* AI Panel Glass Container */}
-      <div className="p-5 rounded-[22px] bg-[#070D14]/90 backdrop-blur-xl border border-white/[0.08] shadow-2xl space-y-4">
+      <div className="glass-card p-5 space-y-4">
         
+        {/* Model Badge Bar */}
+        <div className="flex items-center justify-between pb-3 border-b border-blue-500/15">
+          <div className="flex items-center gap-2">
+            <div className="p-1 rounded-md bg-blue-600/20 text-[#5AA9FF] border border-blue-400/30">
+              <Cpu className="w-3.5 h-3.5" />
+            </div>
+            <span className="font-mono text-xs font-semibold text-white">
+              gpt-oss-120b <span className="text-[#8EA0C4] font-normal">via Groq</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 font-mono text-[10px]">
+            <span className="px-2 py-0.5 rounded bg-blue-900/30 border border-blue-400/25 text-[#93C5FD]">
+              calls: 1
+            </span>
+            <span className="px-2 py-0.5 rounded bg-blue-900/30 border border-blue-400/25 text-[#93C5FD]">
+              cached
+            </span>
+          </div>
+        </div>
+
         {/* Scenario triggers header */}
         <div className="space-y-2">
-          <div className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider flex items-center justify-between">
+          <div className="text-[11px] font-mono text-[#8EA0C4] uppercase tracking-wider flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="text-zinc-200 font-semibold">Dispatcher Scenarios</span>
+              <Sparkles className="w-3.5 h-3.5 text-[#5AA9FF]" />
+              <span className="text-zinc-200 font-semibold">Scenario Triggers</span>
             </div>
-            <span className="text-[10px] text-zinc-500">1-CLICK RUN</span>
+            <span className="text-[10px] text-[#52658A]">1-CLICK RUN</span>
           </div>
 
           {/* Three One-Click Scenario Buttons */}
@@ -92,7 +112,7 @@ export default function AIPanel({
                   key={idx}
                   onClick={() => onSendMessage(chip.query)}
                   disabled={isLoading}
-                  className="w-full text-left p-3 rounded-xl bg-[#05090D] hover:bg-[#0A1420] border border-white/[0.06] hover:border-cyan-500/30 transition-all flex items-center justify-between group active:scale-[0.99] disabled:opacity-50 shadow-sm"
+                  className="w-full text-left p-3 rounded-xl bg-[#02060F]/70 hover:bg-blue-950/40 border border-blue-500/15 hover:border-blue-400/40 transition-all flex items-center justify-between group active:scale-[0.99] disabled:opacity-50"
                 >
                   <div className="flex items-center gap-2.5 truncate pr-2">
                     <IconComp className={`w-4 h-4 ${chip.iconColor} flex-shrink-0`} />
@@ -100,12 +120,12 @@ export default function AIPanel({
                       <div className="text-xs font-mono font-medium text-zinc-200 group-hover:text-white truncate">
                         {chip.label}
                       </div>
-                      <div className="text-[10px] font-mono text-zinc-500">
+                      <div className="text-[10px] font-mono text-[#8EA0C4]">
                         {chip.sub}
                       </div>
                     </div>
                   </div>
-                  <ArrowRight className="w-3.5 h-3.5 text-zinc-600 group-hover:text-cyan-400 flex-shrink-0 transition-colors" />
+                  <ArrowRight className="w-3.5 h-3.5 text-[#52658A] group-hover:text-[#5AA9FF] flex-shrink-0 transition-colors" />
                 </button>
               )
             })}
@@ -120,27 +140,27 @@ export default function AIPanel({
             onChange={(e) => setInput(e.target.value)}
             disabled={isLoading || llmUnavailable}
             placeholder={llmUnavailable ? "Chat disabled (LLM unavailable) — use Manual Route above" : "Instruct dispatch agent..."}
-            className="flex-1 px-4 py-2.5 rounded-full bg-[#05090D] border border-white/10 focus:border-cyan-400 focus:outline-none text-xs font-mono text-white placeholder-zinc-500 disabled:opacity-50 transition-colors"
+            className="flex-1 px-4 py-2.5 rounded-lg bg-[#02060F]/80 border border-blue-500/25 focus:border-[#5AA9FF] focus:outline-none text-xs font-mono text-white placeholder-[#52658A] disabled:opacity-50 transition-colors"
           />
           <button
             type="submit"
             disabled={!input.trim() || isLoading || llmUnavailable}
-            className="p-2.5 rounded-full bg-white hover:bg-zinc-200 text-black font-bold text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+            className="btn-primary py-2 px-3 text-xs"
           >
-            <Send className="w-4 h-4" />
+            <Send className="w-3.5 h-3.5" />
           </button>
         </form>
 
         {/* Reasoning Trace Section */}
-        <div className="pt-2 border-t border-white/[0.08] space-y-2">
+        <div className="pt-2 border-t border-blue-500/15 space-y-2">
           <div className="flex items-center justify-between text-xs font-mono">
-            <div className="flex items-center gap-1.5 text-white font-bold">
-              <Terminal className="w-3.5 h-3.5 text-cyan-400" />
+            <div className="flex items-center gap-1.5 text-white font-medium">
+              <Terminal className="w-3.5 h-3.5 text-[#5AA9FF]" />
               <span>Reasoning Trace</span>
             </div>
             {isLoading && (
-              <div className="flex items-center gap-1.5 text-[11px] text-cyan-400">
-                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+              <div className="flex items-center gap-1.5 text-[11px] text-[#5AA9FF]">
+                <span className="w-2 h-2 rounded-full bg-[#5AA9FF] animate-ping" />
                 <span>Evaluating...</span>
               </div>
             )}
@@ -149,27 +169,25 @@ export default function AIPanel({
           {/* Trace Items List */}
           <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
             {isLoading && trace.length === 0 ? (
-              // Loading Skeleton
               <div className="space-y-2 animate-pulse">
-                <div className="h-10 bg-[#05090D] rounded-xl" />
-                <div className="h-10 bg-[#05090D] rounded-xl" />
+                <div className="h-10 bg-[#02060F]/80 rounded-xl" />
+                <div className="h-10 bg-[#02060F]/80 rounded-xl" />
               </div>
             ) : trace.length === 0 ? (
-              // Empty State
-              <div className="p-4 rounded-xl bg-[#05090D] border border-white/[0.04] text-center text-xs font-mono text-zinc-500">
-                Trigger any scenario above to observe multi-tool reasoning and policy decisions.
+              <div className="p-4 rounded-xl bg-[#02060F]/60 border border-blue-500/10 text-center text-xs font-mono text-[#8EA0C4]">
+                Trigger any scenario above to observe multi-tool reasoning and Cedar policy decisions.
               </div>
             ) : (
               trace.map((item, i) => (
                 <div
                   key={i}
-                  className="p-2.5 rounded-xl bg-[#05090D] border border-white/[0.06] font-mono text-xs space-y-1 hover:border-cyan-500/20 transition-colors"
+                  className="p-2.5 rounded-xl bg-[#02060F]/80 border border-blue-500/15 font-mono text-xs space-y-1 hover:border-blue-400/30 transition-colors"
                 >
                   <div className="flex items-center justify-between text-[10px]">
-                    <span className="font-bold uppercase text-cyan-400">
+                    <span className="font-semibold uppercase text-[#5AA9FF]">
                       {item.tool || item.stage || 'step'}
                     </span>
-                    <span className="text-zinc-600">#{i + 1}</span>
+                    <span className="text-[#52658A]">#{i + 1}</span>
                   </div>
                   <div className="text-zinc-300 text-[11px] leading-relaxed">
                     {item.message || item.action || (item.output ? JSON.stringify(item.output).slice(0, 95) + '...' : 'Processing')}

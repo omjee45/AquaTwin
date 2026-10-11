@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
-import { Layers, Eye, RefreshCw, MapPin } from 'lucide-react'
+import { Layers, RefreshCw } from 'lucide-react'
 
 // Free ESRI Dark Gray Canvas tiles (No API key required, zero watermarks)
 const ESRI_DARK_STYLE = {
@@ -67,7 +67,7 @@ export default function MapDashboard({ routeData, places }) {
     map.current.on('load', () => {
       setMapLoaded(true)
 
-      // 1. Flood Extent Layer (Blue fill with Cyan edge #00D4FF)
+      // 1. Flood Extent Layer (Blue fill with Cyan edge #22D3EE)
       map.current.addSource('flood-extent', {
         type: 'geojson',
         data: '/data/flood_extent.geojson',
@@ -88,7 +88,7 @@ export default function MapDashboard({ routeData, places }) {
         type: 'line',
         source: 'flood-extent',
         paint: {
-          'line-color': '#00D4FF',
+          'line-color': '#22D3EE',
           'line-width': 1.5,
           'line-opacity': 0.85,
         },
@@ -131,9 +131,9 @@ export default function MapDashboard({ routeData, places }) {
                 'line-color': [
                   'step',
                   ['get', 'prob'],
-                  '#00E5B0',
-                  0.4, '#FFB347',
-                  0.7, '#FF4560'
+                  '#34D399',
+                  0.4, '#F59E0B',
+                  0.7, '#F43F5E'
                 ],
                 'line-width': 3.5,
                 'line-opacity': 0.75
@@ -145,21 +145,21 @@ export default function MapDashboard({ routeData, places }) {
 
       // 3. Markers for Origin and Hospital
       const ambEl = document.createElement('div')
-      ambEl.className = 'w-4 h-4 rounded-full bg-amber-400 border-2 border-white shadow-[0_0_10px_#F59E0B] cursor-pointer animate-pulse'
+      ambEl.className = 'w-4 h-4 rounded-full bg-[#F59E0B] border-2 border-white shadow-[0_0_12px_#F59E0B] cursor-pointer animate-pulse'
       new maplibregl.Marker({ element: ambEl })
         .setLngLat(AMBULANCE_START)
         .setPopup(new maplibregl.Popup({ offset: 10 }).setHTML(
-          '<div style="font-family:Inter Tight,sans-serif;font-size:12px;color:#05090D;padding:2px;">' +
+          '<div style="font-family:Inter,sans-serif;font-size:12px;color:#02060F;padding:2px;">' +
           '<strong>Ambulance 4 Start</strong><br>Near Qutab Road (Node 6720363005)</div>'
         ))
         .addTo(map.current)
 
       const hospEl = document.createElement('div')
-      hospEl.className = 'w-4 h-4 rounded-full bg-emerald-400 border-2 border-white shadow-[0_0_10px_#10B981] cursor-pointer'
+      hospEl.className = 'w-4 h-4 rounded-full bg-[#34D399] border-2 border-white shadow-[0_0_12px_#34D399] cursor-pointer'
       new maplibregl.Marker({ element: hospEl })
         .setLngLat(HOSPITAL_LNJP)
         .setPopup(new maplibregl.Popup({ offset: 10 }).setHTML(
-          '<div style="font-family:Inter Tight,sans-serif;font-size:12px;color:#05090D;padding:2px;">' +
+          '<div style="font-family:Inter,sans-serif;font-size:12px;color:#02060F;padding:2px;">' +
           '<strong>Lok Nayak Hospital (LNJP)</strong><br>Destination (Node 458640629)</div>'
         ))
         .addTo(map.current)
@@ -206,7 +206,7 @@ export default function MapDashboard({ routeData, places }) {
         type: 'line',
         source: 'default-route',
         paint: {
-          'line-color': '#FF4560',
+          'line-color': '#F43F5E',
           'line-width': 2.5,
           'line-dasharray': [2, 2],
           'line-opacity': 0.5
@@ -214,7 +214,7 @@ export default function MapDashboard({ routeData, places }) {
       })
     }
 
-    // Safe route as vibrant radar mint line
+    // Safe route as vibrant green line
     if (map.current.getSource('safe-route')) {
       map.current.getSource('safe-route').setData(safeGeo)
     } else if (safeCoords.length > 0) {
@@ -224,7 +224,7 @@ export default function MapDashboard({ routeData, places }) {
         type: 'line',
         source: 'safe-route',
         paint: {
-          'line-color': '#00E5B0',
+          'line-color': '#34D399',
           'line-width': 4.5,
           'line-dasharray': [1.5, 1],
           'line-opacity': 0.95
@@ -266,7 +266,7 @@ export default function MapDashboard({ routeData, places }) {
   }
 
   return (
-    <div className="relative w-full h-[580px] rounded-[22px] overflow-hidden bg-[#070D14] border border-white/[0.08] shadow-2xl">
+    <div className="glass-card relative w-full h-[580px] overflow-hidden">
       
       {/* MapLibre Canvas Container */}
       <div ref={mapContainer} className="w-full h-full" />
@@ -275,10 +275,10 @@ export default function MapDashboard({ routeData, places }) {
       <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
         <button
           onClick={toggleFlood}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono transition-all backdrop-blur-md border ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition-all backdrop-blur-md border ${
             showFlood
-              ? 'bg-[#070D14]/95 border-cyan-500/40 text-cyan-400 shadow-md'
-              : 'bg-[#070D14]/80 border-white/10 text-zinc-400 hover:text-white'
+              ? 'bg-[#02060F]/90 border-blue-400/40 text-[#5AA9FF] shadow-[0_0_12px_rgba(59,130,246,0.2)]'
+              : 'bg-[#02060F]/70 border-blue-500/20 text-[#8EA0C4] hover:text-white'
           }`}
         >
           <Layers className="w-3.5 h-3.5" />
@@ -287,36 +287,36 @@ export default function MapDashboard({ routeData, places }) {
 
         <button
           onClick={handleResetCamera}
-          className="p-2 rounded-full bg-[#070D14]/90 border border-white/10 hover:border-white/20 text-zinc-400 hover:text-white transition-all backdrop-blur-md shadow-md"
+          className="p-2 rounded-lg bg-[#02060F]/80 border border-blue-500/20 hover:border-blue-400/40 text-[#8EA0C4] hover:text-white transition-all backdrop-blur-md shadow-md"
           title="Reset View"
         >
           <RefreshCw className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      {/* Small Clean Legend */}
-      <div className="absolute bottom-4 right-4 z-10 p-3.5 rounded-2xl bg-[#070D14]/95 backdrop-blur-md border border-white/10 text-[11px] font-mono space-y-2 shadow-xl">
-        <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider border-b border-white/[0.08] pb-1.5">
-          Map Radar Legend
+      {/* Legend */}
+      <div className="absolute bottom-4 right-4 z-10 p-3.5 rounded-xl bg-[#02060F]/90 backdrop-blur-md border border-blue-500/20 text-[11px] font-mono space-y-2 shadow-xl">
+        <div className="text-[10px] font-semibold text-[#8EA0C4] uppercase tracking-wider border-b border-blue-500/15 pb-1.5">
+          Map Legend
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="w-3.5 h-1.5 rounded-full bg-[#00E5B0]" />
+          <span className="w-3.5 h-1.5 rounded-full bg-[#34D399]" />
           <span className="text-zinc-200">Safe corridor (detour)</span>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="w-3.5 h-0.5 border-t border-dashed border-[#FF4560]" />
-          <span className="text-zinc-400">Flooded default path</span>
+          <span className="w-3.5 h-0.5 border-t border-dashed border-[#F43F5E]" />
+          <span className="text-[#8EA0C4]">Flooded default path</span>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="w-3.5 h-2.5 rounded bg-[#0284C7]/60 border border-[#00D4FF]" />
-          <span className="text-zinc-400">Sentinel-1 water mask</span>
+          <span className="w-3.5 h-2.5 rounded bg-[#0284C7]/60 border border-[#22D3EE]" />
+          <span className="text-[#8EA0C4]">Sentinel-1 water mask</span>
         </div>
 
-        <div className="flex items-center gap-2 pt-1.5 border-t border-white/[0.08] text-[10px] text-zinc-400">
-          <span className="w-2 h-2 rounded-full bg-amber-400" />
+        <div className="flex items-center gap-2 pt-1.5 border-t border-blue-500/15 text-[10px] text-[#8EA0C4]">
+          <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />
           <span>Ambulance 4 → LNJP</span>
         </div>
       </div>
