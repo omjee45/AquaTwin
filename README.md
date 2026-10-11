@@ -238,15 +238,6 @@ AquaTwin/
 - **Python Libraries**: NetworkX, `cedarpy`, `boto3`, `requests`, `python-dotenv`, `google-genai`, `openai`.
 - **Typography**: Google Fonts ([Plus Jakarta Sans](https://fonts.google.com/specimen/Plus+Jakarta+Sans), [Space Grotesk](https://fonts.google.com/specimen/Space+Grotesk), [Inter](https://fonts.google.com/specimen/Inter), [JetBrains Mono](https://fonts.google.com/specimen/JetBrains+Mono)).
 
----
-
-## AI Tools Used
-- **Gemini**: Assisted in data prep optimization and technical synthesis.
-- **NotebookLM**: Used for research synthesis and scenario planning.
-- **Claude**: Architecture planning
-- **Runtime Inference Models**: Groq (`openai/gpt-oss-120b`) and Google Gemini (`gemini-2.5-flash`).
-
-*All code, algorithms, and policies were manually reviewed, tested, and validated by the team.*
 
 ---
 
