@@ -3,6 +3,22 @@ import gsap from 'gsap'
 import DigitalTwinHub from './DigitalTwinHub'
 import { ArrowDown, Play, X, ExternalLink } from 'lucide-react'
 
+function formatEmbedUrl(url) {
+  if (!url) return ''
+  try {
+    const trimmed = url.trim()
+    if (trimmed.includes('youtube.com/embed/')) return trimmed
+    // Match watch?v=ID, youtu.be/ID, or shorts/ID
+    const match = trimmed.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
+    if (match && match[1]) {
+      return `https://www.youtube.com/embed/${match[1]}?autoplay=1&rel=0`
+    }
+  } catch (e) {
+    // fallback
+  }
+  return url
+}
+
 export default function Hero({ onOpenCommandCenter, nodeCount = '14,904' }) {
   const line1Ref = useRef(null)
   const line2Ref = useRef(null)
@@ -11,7 +27,8 @@ export default function Hero({ onOpenCommandCenter, nodeCount = '14,904' }) {
   const pillRef = useRef(null)
 
   const [showDemoModal, setShowDemoModal] = useState(false)
-  const demoUrl = import.meta.env.VITE_DEMO_VIDEO_URL || ''
+  const rawDemoUrl = import.meta.env.VITE_DEMO_VIDEO_URL || ''
+  const demoUrl = formatEmbedUrl(rawDemoUrl)
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -156,12 +173,25 @@ export default function Hero({ onOpenCommandCenter, nodeCount = '14,904' }) {
                   AquaTwin Demonstration · Autonomous Delhi Flood Dispatch
                 </span>
               </div>
-              <button
-                onClick={() => setShowDemoModal(false)}
-                className="p-1 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                {rawDemoUrl && (
+                  <a
+                    href={rawDemoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-blue-300 hover:text-white bg-blue-900/40 hover:bg-blue-800/60 border border-blue-500/30 rounded-lg transition-colors"
+                  >
+                    <span>Watch on YouTube</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+                <button
+                  onClick={() => setShowDemoModal(false)}
+                  className="p-1 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Video Body or Placeholder */}

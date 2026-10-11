@@ -34,7 +34,18 @@ secrets.json
 
 # Cache & Large binary assets
 prep/cache/
+cache/
+scratch/
+build_lambda/
+tmp_wheels/
+*.whl
+*.zip
 *.npz
+
+# Node / Dependencies
 node_modules/
 frontend/node_modules/
 frontend/dist/
+
+# Temporary / Scratch scripts
+check_*.py

@@ -10,6 +10,7 @@ Returns route coordinates, distances, flooded segments avoided, and detour km.
 No LLM involved -- pure deterministic graph algorithm.
 """
 
+import os
 import json
 import math
 import heapq
@@ -38,6 +39,23 @@ class RoutingEngine:
         self._load_network()
 
     def _load_network(self):
+        if not self.roads_path.exists():
+            bucket = os.environ.get("DATA_BUCKET", "").strip()
+            tmp_roads = Path("/tmp/data/roads_scored.json")
+            if tmp_roads.exists():
+                self.roads_path = tmp_roads
+            elif bucket:
+                try:
+                    import boto3
+                    s3 = boto3.client("s3", region_name=os.environ.get("AWS_REGION", "us-east-1"))
+                    tmp_roads.parent.mkdir(parents=True, exist_ok=True)
+                    prefix = os.environ.get("DATA_PREFIX", "data/").strip()
+                    print(f"Downloading roads_scored.json from s3://{bucket}/{prefix}roads_scored.json to {tmp_roads}...")
+                    s3.download_file(bucket, f"{prefix}roads_scored.json", str(tmp_roads))
+                    self.roads_path = tmp_roads
+                except Exception as e:
+                    print(f"[Warning] Failed to fetch roads from S3: {e}")
+
         if not self.roads_path.exists():
             raise FileNotFoundError(f"Roads file not found at: {self.roads_path}")
 

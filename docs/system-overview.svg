@@ -100,17 +100,19 @@
 
   <!-- SUBGRAPH 2: Online Runtime on AWS -->
   <rect x="30" y="410" width="860" height="370" rx="12" fill="#081426" stroke="#1e293b" stroke-width="1.5"/>
-  <text x="50" y="435" class="subgroup-title">Online Runtime on AWS (pending deploy / local dev server)</text>
+  <text x="50" y="435" class="subgroup-title">Online Runtime on AWS (Live Production Serverless Stack)</text>
 
   <!-- UI -->
-  <rect x="50" y="465" width="150" height="60" class="node-rect"/>
-  <text x="125" y="492" class="node-text">Web UI</text>
-  <text x="125" y="510" class="node-subtext">React + MapLibre GL</text>
+  <rect x="50" y="465" width="150" height="60" class="node-rect" stroke="#10b981" stroke-width="1.5"/>
+  <text x="125" y="488" class="node-text">AWS Amplify Hosting</text>
+  <text x="125" y="504" class="node-subtext">React + MapLibre GL 3D</text>
+  <text x="125" y="518" class="node-subtext" fill="#34d399">Live Production</text>
 
   <!-- API Gateway -->
-  <rect x="240" y="465" width="150" height="60" class="node-rect"/>
-  <text x="315" y="492" class="node-text">API Gateway (pending)</text>
-  <text x="315" y="510" class="node-subtext">HTTP API / CORS</text>
+  <rect x="240" y="465" width="150" height="60" class="node-rect" stroke="#0284c7" stroke-width="1.5"/>
+  <text x="315" y="488" class="node-text">Amazon API Gateway</text>
+  <text x="315" y="504" class="node-subtext">HTTP API v2 / Throttled</text>
+  <text x="315" y="518" class="node-subtext" fill="#38bdf8">Rate Limit: 5 req/s</text>
 
   <!-- Lambda -->
   <rect x="430" y="465" width="150" height="60" class="node-rect" stroke="#f59e0b" stroke-width="1.5"/>

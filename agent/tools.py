@@ -16,8 +16,9 @@ Crucial safety property (SPEC Section 8 & 9):
 import os
 import sys
 import json
+import time
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
@@ -30,6 +31,24 @@ PLACES_PATH = ROOT_DIR / "prep" / "out" / "places.json"
 DEMO_PATH = ROOT_DIR / "prep" / "out" / "demo_segments.json"
 
 _ROAD_CACHE: Optional[Dict[str, Dict[str, Any]]] = None
+_ALERT_TIMESTAMPS: List[float] = []
+MAX_ALERTS_PER_HOUR = 5
+
+
+def _ensure_s3_file(filename: str, local_target: Path) -> bool:
+    bucket = os.environ.get("DATA_BUCKET", "").strip()
+    if not bucket:
+        return False
+    try:
+        import boto3
+        s3 = boto3.client("s3", region_name=os.environ.get("AWS_REGION", "us-east-1"))
+        prefix = os.environ.get("DATA_PREFIX", "data/").strip()
+        local_target.parent.mkdir(parents=True, exist_ok=True)
+        s3.download_file(bucket, f"{prefix}{filename}", str(local_target))
+        return True
+    except Exception as e:
+        print(f"[Warning] S3 download failed for {filename}: {e}")
+        return False
 
 
 def _get_road_lookup() -> Dict[str, Dict[str, Any]]:
@@ -37,9 +56,15 @@ def _get_road_lookup() -> Dict[str, Dict[str, Any]]:
     if _ROAD_CACHE is None:
         _ROAD_CACHE = {}
         # Pre-seed from demo segments first if available for fast lookups
-        if DEMO_PATH.exists():
+        demo_file = DEMO_PATH
+        if not demo_file.exists():
+            tmp_demo = Path("/tmp/data/demo_segments.json")
+            if tmp_demo.exists() or _ensure_s3_file("demo_segments.json", tmp_demo):
+                demo_file = tmp_demo
+
+        if demo_file.exists():
             try:
-                with open(DEMO_PATH, "r", encoding="utf-8") as f:
+                with open(demo_file, "r", encoding="utf-8") as f:
                     demo = json.load(f)
                 for c in demo.get("allow_candidates", []):
                     _ROAD_CACHE[str(c["id"])] = c
@@ -52,9 +77,15 @@ def _get_road_lookup() -> Dict[str, Dict[str, Any]]:
                 pass
 
         # Load complete roads dataset
-        if ROADS_PATH.exists():
+        roads_file = ROADS_PATH
+        if not roads_file.exists():
+            tmp_roads = Path("/tmp/data/roads_scored.json")
+            if tmp_roads.exists() or _ensure_s3_file("roads_scored.json", tmp_roads):
+                roads_file = tmp_roads
+
+        if roads_file.exists():
             try:
-                with open(ROADS_PATH, "r", encoding="utf-8") as f:
+                with open(roads_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                 for e in data.get("edges", []):
                     eid = str(e.get("id", f"{e['u']}_{e['v']}_0"))
@@ -171,6 +202,28 @@ def send_alert(
             "policy_reason": eval_result["diagnostics"]["reason"],
             "ui_flash": "BLOCKED BY POLICY"
         }
+
+    # Abuse Protection: Cap at 5 SNS alerts per hour per Lambda instance
+    global _ALERT_TIMESTAMPS
+    now = time.time()
+    _ALERT_TIMESTAMPS = [t for t in _ALERT_TIMESTAMPS if now - t < 3600.0]
+    if len(_ALERT_TIMESTAMPS) >= MAX_ALERTS_PER_HOUR:
+        print(f"[RateLimit Abuse Protection] Alert rate limit reached (max {MAX_ALERTS_PER_HOUR} per hour per instance). Suppressing SNS broadcast.", flush=True)
+        return {
+            "status": "RATE_LIMITED",
+            "decision": "RATE_LIMITED",
+            "alert_sent": False,
+            "cedar_engine": cedar_engine,
+            "segment_id": segment_id,
+            "display_name": status["display_name"],
+            "flood_pct": status["flood_pct"],
+            "validation_source": status["validation_source"],
+            "message": message,
+            "policy_reason": f"Cedar permitted, but hourly broadcast rate limit reached (max {MAX_ALERTS_PER_HOUR} alerts/hour for public demonstration instance).",
+            "ui_flash": "RATE LIMITED (5/hr)"
+        }
+
+    _ALERT_TIMESTAMPS.append(now)
 
     # If allowed, publish to AWS SNS using existing local AWS credentials
     sns_arn = os.environ.get("SNS_TOPIC_ARN", "")
