@@ -35,3 +35,6 @@ secrets.json
 # Cache & Large binary assets
 prep/cache/
 *.npz
+node_modules/
+frontend/node_modules/
+frontend/dist/

@@ -192,17 +192,10 @@ export default function App() {
               nodeCount={nodeCountFormatted}
             />
 
-            {/* 2. Marquee Bar below the cluster */}
-            <TelemetryMarquee
-              stats={stateData?.stats}
-              demoSegments={stateData?.demo_segments}
-              recentEvent={recentEvent}
-            />
-
-            {/* 3. Tech Strip */}
+            {/* 2. Tech Strip */}
             <TechStrip />
 
-            {/* 4. Stat Counters */}
+            {/* 3. Stat Counters */}
             <StatCounters sessionStats={sessionStats} />
 
             {/* 5. Command Center Section */}

@@ -1,0 +1,185 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 840" width="920" height="840" style="background:#060d1a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8"/>
+    </marker>
+    <marker id="arrow-dashed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#94a3b8"/>
+    </marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#34d399"/>
+    </marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#f87171"/>
+    </marker>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <style>
+    .title { font-weight: 700; fill: #f8fafc; font-size: 18px; letter-spacing: 0.5px; }
+    .subgroup-title { font-weight: 600; fill: #94a3b8; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
+    .node-rect { fill: #0d1b2e; stroke: #1e3a5f; stroke-width: 1.5; rx: 8; }
+    .node-text { fill: #f1f5f9; font-size: 13px; font-weight: 500; text-anchor: middle; }
+    .node-subtext { fill: #94a3b8; font-size: 11px; text-anchor: middle; }
+    .edge { stroke: #38bdf8; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+    .edge-dashed { stroke: #94a3b8; stroke-width: 1.5; stroke-dasharray: 4,4; fill: none; marker-end: url(#arrow-dashed); }
+    .edge-green { stroke: #34d399; stroke-width: 1.8; fill: none; marker-end: url(#arrow-green); }
+    .edge-red { stroke: #f87171; stroke-width: 1.8; fill: none; marker-end: url(#arrow-red); }
+    .edge-label { fill: #cbd5e1; font-size: 11px; font-weight: 600; text-anchor: middle; }
+    .note { fill: #38bdf8; font-size: 12px; font-style: italic; }
+  </style>
+
+  <!-- Title -->
+  <text x="460" y="32" class="title" text-anchor="middle">AquaTwin System Architecture Overview</text>
+
+  <!-- SUBGRAPH 1: Offline Data Prep -->
+  <rect x="30" y="55" width="860" height="255" rx="12" fill="#081426" stroke="#1e293b" stroke-width="1.5"/>
+  <text x="50" y="80" class="subgroup-title">Offline Data Prep (run once, local)</text>
+
+  <!-- Nodes in Offline Prep -->
+  <!-- S1 -->
+  <rect x="50" y="105" width="160" height="52" class="node-rect"/>
+  <text x="130" y="126" class="node-text">Sentinel-1 RTC</text>
+  <text x="130" y="144" class="node-subtext">Planetary Computer</text>
+
+  <!-- Water mask -->
+  <rect x="250" y="105" width="180" height="52" class="node-rect"/>
+  <text x="340" y="126" class="node-text">Water Mask</text>
+  <text x="340" y="144" class="node-subtext">fixed -16.5 dB change detect</text>
+
+  <!-- DEM -->
+  <rect x="50" y="180" width="160" height="52" class="node-rect"/>
+  <text x="130" y="201" class="node-text">Copernicus DEM 30 m</text>
+  <text x="130" y="219" class="node-subtext">GLO-30 Elevation</text>
+
+  <!-- HAND -->
+  <rect x="250" y="180" width="180" height="52" class="node-rect"/>
+  <text x="340" y="201" class="node-text">Simplified HAND</text>
+  <text x="340" y="219" class="node-subtext">Distance transform proxy</text>
+
+  <!-- RAIN -->
+  <rect x="50" y="245" width="160" height="48" class="node-rect"/>
+  <text x="130" y="266" class="node-text">Open-Meteo Rainfall</text>
+  <text x="130" y="282" class="node-subtext">118.2 mm event sum</text>
+
+  <!-- OSM -->
+  <rect x="250" y="245" width="180" height="48" class="node-rect"/>
+  <text x="340" y="266" class="node-text">OpenStreetMap Roads</text>
+  <text x="340" y="282" class="node-subtext">15,738 physical segments</text>
+
+  <!-- SCORE -->
+  <rect x="470" y="145" width="190" height="70" class="node-rect" stroke="#0284c7" stroke-width="2"/>
+  <text x="565" y="172" class="node-text" fill="#38bdf8">Per-Segment Scoring</text>
+  <text x="565" y="190" class="node-subtext">0.5 SAR + 0.3 HAND + 0.2 Rain</text>
+  <text x="565" y="204" class="node-subtext">flood_pct &amp; validation_source</text>
+
+  <!-- Static files -->
+  <rect x="700" y="145" width="170" height="70" class="node-rect"/>
+  <text x="785" y="170" class="node-text">roads_scored.json</text>
+  <text x="785" y="188" class="node-subtext">flood_extent.geojson</text>
+  <text x="785" y="204" class="node-subtext">stats.json &amp; places.json</text>
+
+  <!-- Arrows in Offline -->
+  <path d="M 210 131 L 250 131" class="edge"/>
+  <path d="M 210 206 L 250 206" class="edge"/>
+  <path d="M 430 131 L 470 160" class="edge"/>
+  <path d="M 430 206 L 470 185" class="edge"/>
+  <path d="M 210 269 L 470 205" class="edge"/>
+  <path d="M 430 269 L 470 215" class="edge"/>
+  <path d="M 660 180 L 700 180" class="edge"/>
+
+  <!-- S3 Storage Bucket (Intermediate) -->
+  <rect x="700" y="335" width="170" height="50" rx="8" fill="#13233a" stroke="#0284c7" stroke-width="1.5"/>
+  <text x="785" y="356" class="node-text" fill="#38bdf8">Amazon S3</text>
+  <text x="785" y="372" class="node-subtext">Static Hydrology Store</text>
+
+  <path d="M 785 215 L 785 335" class="edge"/>
+
+  <!-- SUBGRAPH 2: Online Runtime on AWS -->
+  <rect x="30" y="410" width="860" height="370" rx="12" fill="#081426" stroke="#1e293b" stroke-width="1.5"/>
+  <text x="50" y="435" class="subgroup-title">Online Runtime on AWS (pending deploy / local dev server)</text>
+
+  <!-- UI -->
+  <rect x="50" y="465" width="150" height="60" class="node-rect"/>
+  <text x="125" y="492" class="node-text">Web UI</text>
+  <text x="125" y="510" class="node-subtext">React + MapLibre GL</text>
+
+  <!-- API Gateway -->
+  <rect x="240" y="465" width="150" height="60" class="node-rect"/>
+  <text x="315" y="492" class="node-text">API Gateway (pending)</text>
+  <text x="315" y="510" class="node-subtext">HTTP API / CORS</text>
+
+  <!-- Lambda -->
+  <rect x="430" y="465" width="150" height="60" class="node-rect" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="505" y="492" class="node-text">AWS Lambda</text>
+  <text x="505" y="510" class="node-subtext">Python Runtime</text>
+
+  <!-- CloudWatch -->
+  <rect x="620" y="465" width="140" height="60" class="node-rect"/>
+  <text x="690" y="492" class="node-text">CloudWatch Logs</text>
+  <text x="690" y="510" class="node-subtext">Execution telemetry</text>
+
+  <!-- Agent -->
+  <rect x="430" y="560" width="150" height="50" class="node-rect" stroke="#8b5cf6" stroke-width="1.5"/>
+  <text x="505" y="582" class="node-text">Agent Tool Loop</text>
+  <text x="505" y="598" class="node-subtext">Multi-provider orchestrator</text>
+
+  <!-- LLM Provider Chain -->
+  <rect x="620" y="560" width="160" height="50" class="node-rect" stroke="#ec4899" stroke-width="1.5"/>
+  <text x="700" y="582" class="node-text">LLM Provider Chain</text>
+  <text x="700" y="598" class="node-subtext">Groq -> Gemini fallback</text>
+
+  <!-- Tools -->
+  <rect x="60" y="650" width="150" height="52" class="node-rect"/>
+  <text x="135" y="672" class="node-text">get_flood_status</text>
+  <text x="135" y="690" class="node-subtext">Reads scored JSON</text>
+
+  <rect x="230" y="650" width="170" height="52" class="node-rect"/>
+  <text x="315" y="672" class="node-text">compute_safe_route</text>
+  <text x="315" y="690" class="node-subtext">Deterministic NetworkX</text>
+
+  <rect x="420" y="650" width="170" height="52" class="node-rect"/>
+  <text x="505" y="672" class="node-text">send_alert</text>
+  <text x="505" y="690" class="node-subtext">Takes only segment_id + text</text>
+
+  <!-- Policy Gate -->
+  <polygon points="690,640 780,676 690,712 600,676" fill="#1e1b4b" stroke="#a855f7" stroke-width="2"/>
+  <text x="690" y="672" class="node-text" fill="#c084fc">Policy Gate</text>
+  <text x="690" y="688" class="node-subtext">cedarpy evaluator</text>
+
+  <!-- Gate outputs -->
+  <rect x="730" y="730" width="140" height="40" class="node-rect" stroke="#10b981" stroke-width="1.5"/>
+  <text x="800" y="750" class="node-text" fill="#34d399">Amazon SNS</text>
+  <text x="800" y="763" class="node-subtext">Email alert dispatched</text>
+
+  <rect x="570" y="730" width="140" height="40" class="node-rect" stroke="#ef4444" stroke-width="1.5"/>
+  <text x="640" y="750" class="node-text" fill="#f87171">BLOCKED BY POLICY</text>
+  <text x="640" y="763" class="node-subtext">Alert suppressed</text>
+
+  <!-- Connecting Edges in Online -->
+  <path d="M 200 495 L 240 495" class="edge-dashed"/>
+  <text x="220" y="488" class="edge-label">HTTPS</text>
+  <path d="M 390 495 L 430 495" class="edge-dashed"/>
+  <path d="M 580 495 L 620 495" class="edge"/>
+  <path d="M 700 385 L 505 465" class="edge-dashed"/>
+  <path d="M 505 525 L 505 560" class="edge"/>
+  <path d="M 580 585 L 620 585" class="edge"/>
+  <path d="M 620 585 L 580 585" class="edge"/>
+
+  <path d="M 450 610 L 135 650" class="edge"/>
+  <path d="M 480 610 L 315 650" class="edge"/>
+  <path d="M 505 610 L 505 650" class="edge"/>
+
+  <path d="M 590 676 L 600 676" class="edge"/>
+  <path d="M 720 705 L 750 730" class="edge-green"/>
+  <text x="750" y="718" class="edge-label" fill="#34d399">allow</text>
+
+  <path d="M 660 705 L 640 730" class="edge-red"/>
+  <text x="635" y="718" class="edge-label" fill="#f87171">deny</text>
+
+  <!-- Note -->
+  <text x="460" y="810" class="note" text-anchor="middle">Note: The policy gate reads flood_pct and validation_source from S3-loaded data, never from the LLM.</text>
+</svg>
