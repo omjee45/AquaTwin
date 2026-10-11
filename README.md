@@ -14,7 +14,7 @@
 
 <p>
 <a href="https://main.d2qogaiupnpnbe.amplifyapp.com/"><b>▶ Live app</b></a> ·
-<a href="https://youtu.be/REPLACE_ME"><b>🎬 Demo video</b></a> <!-- TODO: replace with the YouTube link -->
+<a href="https://youtu.be/PBfshHz1JFk?si=iylk8Wl41uEDjaGW"><b>🎬 Demo video</b></a> <!-- TODO: replace with the YouTube link -->
 · <a href="#-try-it-in-three-clicks">Try it</a>
 · <a href="#-how-it-works">How it works</a>
 · <a href="#-safety-model">Safety</a>
