@@ -1,0 +1,30 @@
+{
+  "event": "Delhi Yamuna flood, July 2023",
+  "bbox": [
+    77.19,
+    28.62,
+    77.28,
+    28.7
+  ],
+  "bbox_area_km2": 78.04,
+  "segment_count_directed": 20012,
+  "segment_count_physical": 15738,
+  "count_above_0.5_directed": 26,
+  "count_above_0.5_physical": 13,
+  "count_above_0.85_directed": 10,
+  "count_above_0.85_physical": 5,
+  "count_confirmed_sentinel1_directed": 24,
+  "flooded_road_km_directed": 1.191,
+  "flooded_road_km_physical": 0.595,
+  "flood_extent_area_km2": 1.898,
+  "flood_polygon_count": 82,
+  "rain_total_mm": 118.2,
+  "rain_norm": 0.591,
+  "water_threshold_db": -16.5,
+  "pre_event_scene_id": "S1A_IW_GRDH_1SDV_20230630T005232_20230630T005257_049208_05EACB_rtc",
+  "pre_event_date": "2023-06-30",
+  "event_scene_id": "S1A_IW_GRDH_1SDV_20230712T005233_20230712T005258_049383_05F03C_rtc",
+  "event_scene_date": "2023-07-12",
+  "event_scene_days_from_peak": -1.0,
+  "peak_date": "2023-07-13"
+}

@@ -27,6 +27,11 @@ prep/cache/
 Thumbs.db
 
 # Secrets
-*.env
 .env
+.env.*
+!.env.example
 secrets.json
+
+# Cache & Large binary assets
+prep/cache/
+*.npz

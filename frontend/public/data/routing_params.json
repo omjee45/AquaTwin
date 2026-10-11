@@ -1,0 +1,23 @@
+{
+  "seed": 42,
+  "flood_threshold": 0.5,
+  "alert_threshold": 0.85,
+  "route_min_km": 2.0,
+  "route_max_km": 8.0,
+  "rand_origin_count": 3000,
+  "flood_origin_km": 1.0,
+  "penalty_multiplier": 4.0,
+  "mode": "risk-weighted",
+  "best_route": {
+    "origin_node": 6720363005,
+    "origin_lat": 28.650752,
+    "origin_lon": 77.2173768,
+    "hospital_node": 458640629,
+    "hospital_name": "Lok Nayak Hospital (LNJP)",
+    "default_km": 5.386,
+    "safe_km": 6.962,
+    "detour_km": 1.577,
+    "model_risk_edges": 93,
+    "flooded_segments": 0
+  }
+}

@@ -1,0 +1,68 @@
+[
+  {
+    "id": "hospital_1",
+    "name": "Lok Nayak Hospital (LNJP)",
+    "role": "hospital_main",
+    "node_id": 458640629,
+    "lat": 28.6364948,
+    "lon": 77.2408713
+  },
+  {
+    "id": "road_1",
+    "name": "Radial Road 7",
+    "role": "affected_road",
+    "node_id": 13836659624,
+    "lat": 28.6313427,
+    "lon": 77.2222317,
+    "flood_probability": 0.4182,
+    "dist_to_river_m": 1549.7
+  },
+  {
+    "id": "road_2",
+    "name": "Radial Road 1",
+    "role": "affected_road",
+    "node_id": 1762945147,
+    "lat": 28.6311044,
+    "lon": 77.2195553,
+    "flood_probability": 0.4182,
+    "dist_to_river_m": 1271.6
+  },
+  {
+    "id": "road_3",
+    "name": "Radial Road 2",
+    "role": "affected_road",
+    "node_id": 12901223722,
+    "lat": 28.6316826,
+    "lon": 77.2172822,
+    "flood_probability": 0.4182,
+    "dist_to_river_m": 1109.5
+  },
+  {
+    "id": "road_4",
+    "name": "Radial Road 3",
+    "role": "affected_road",
+    "node_id": 11462925649,
+    "lat": 28.634179,
+    "lon": 77.2172568,
+    "flood_probability": 0.4182,
+    "dist_to_river_m": 1254.4
+  },
+  {
+    "id": "road_5",
+    "name": "Radial Road 6",
+    "role": "affected_road",
+    "node_id": 1762977449,
+    "lat": 28.634119,
+    "lon": 77.222516,
+    "flood_probability": 0.4182,
+    "dist_to_river_m": 1717.4
+  },
+  {
+    "id": "ambulance_1",
+    "name": "Ambulance 4 start  (Near Qutab Road)",
+    "role": "ambulance_start",
+    "node_id": 6720363005,
+    "lat": 28.650752,
+    "lon": 77.2173768
+  }
+]

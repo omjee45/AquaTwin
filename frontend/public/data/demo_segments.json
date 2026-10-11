@@ -1,0 +1,184 @@
+{
+  "allow_candidates": [
+    {
+      "id": "9789474393_9789474394_0",
+      "u": 9789474393,
+      "v": 9789474394,
+      "length_m": 28.6,
+      "name": null,
+      "flood_probability": 0.9182,
+      "flood_pct": 91,
+      "validation_source": "Sentinel-1",
+      "sar_overlap": 1.0,
+      "low_hand": 1.0,
+      "dist_to_river_m": 376.5,
+      "geometry": [
+        [
+          77.25005,
+          28.68907
+        ],
+        [
+          77.249942,
+          28.68931
+        ]
+      ],
+      "display_name": "Unnamed road near Delhi–Dehradun Expressway"
+    },
+    {
+      "id": "9789474392_9789474393_0",
+      "u": 9789474392,
+      "v": 9789474393,
+      "length_m": 11.7,
+      "name": null,
+      "flood_probability": 0.9182,
+      "flood_pct": 91,
+      "validation_source": "Sentinel-1",
+      "sar_overlap": 1.0,
+      "low_hand": 1.0,
+      "dist_to_river_m": 361.2,
+      "geometry": [
+        [
+          77.249942,
+          28.68931
+        ],
+        [
+          77.249878,
+          28.689399
+        ]
+      ],
+      "display_name": "Unnamed road near Delhi–Dehradun Expressway"
+    },
+    {
+      "id": "9789474394_9789474393_0",
+      "u": 9789474394,
+      "v": 9789474393,
+      "length_m": 28.6,
+      "name": null,
+      "flood_probability": 0.9182,
+      "flood_pct": 91,
+      "validation_source": "Sentinel-1",
+      "sar_overlap": 1.0,
+      "low_hand": 1.0,
+      "dist_to_river_m": 376.5,
+      "geometry": [
+        [
+          77.25005,
+          28.68907
+        ],
+        [
+          77.249942,
+          28.68931
+        ]
+      ],
+      "display_name": "Unnamed road near Delhi–Dehradun Expressway"
+    }
+  ],
+  "block_candidates": [
+    {
+      "id": "5681321307_6439021697_0",
+      "u": 5681321307,
+      "v": 6439021697,
+      "length_m": 89.6,
+      "name": "Vivekanand Marg",
+      "flood_probability": 0.4182,
+      "flood_pct": 41,
+      "validation_source": "model",
+      "sar_overlap": 0.0,
+      "low_hand": 1.0,
+      "dist_to_river_m": 1859.9,
+      "geometry": [
+        [
+          77.222234,
+          28.636365
+        ],
+        [
+          77.222729,
+          28.637045
+        ]
+      ],
+      "display_name": "Vivekanand Marg"
+    },
+    {
+      "id": "5485189761_267249901_0",
+      "u": 5485189761,
+      "v": 267249901,
+      "length_m": 7.6,
+      "name": "Gol Dakkhana Roundabout",
+      "flood_probability": 0.4165,
+      "flood_pct": 41,
+      "validation_source": "model",
+      "sar_overlap": 0.0,
+      "low_hand": 0.994,
+      "dist_to_river_m": 218.4,
+      "geometry": [
+        [
+          77.206211,
+          28.62647
+        ],
+        [
+          77.206151,
+          28.626514
+        ]
+      ],
+      "display_name": "Gol Dakkhana Roundabout"
+    },
+    {
+      "id": "2431986573_6258918660_0",
+      "u": 2431986573,
+      "v": 6258918660,
+      "length_m": 21.2,
+      "name": "Banda Bahadur Marg",
+      "flood_probability": 0.4047,
+      "flood_pct": 40,
+      "validation_source": "model",
+      "sar_overlap": 0.0,
+      "low_hand": 0.955,
+      "dist_to_river_m": 1002.9,
+      "geometry": [
+        [
+          77.207383,
+          28.697909
+        ],
+        [
+          77.207467,
+          28.698085
+        ]
+      ],
+      "display_name": "Banda Bahadur Marg"
+    }
+  ],
+  "confirmed_below_threshold": {
+    "id": "9843847966_1184390656_0",
+    "u": 9843847966,
+    "v": 1184390656,
+    "length_m": 2.8,
+    "name": null,
+    "flood_probability": 0.813,
+    "flood_pct": 81,
+    "validation_source": "Sentinel-1",
+    "sar_overlap": 1.0,
+    "low_hand": 0.649,
+    "dist_to_river_m": 94.9,
+    "geometry": [
+      [
+        77.228518,
+        28.698313
+      ],
+      [
+        77.228546,
+        28.698315
+      ]
+    ],
+    "display_name": "Unnamed road near Doctor KB Hedgewar Marg"
+  },
+  "ambulance_route": {
+    "origin_node": 6720363005,
+    "hospital_node": 458640629,
+    "hospital_name": "Lok Nayak Hospital (LNJP)",
+    "default_km": 5.386,
+    "safe_km": 6.962,
+    "detour_km": 1.577,
+    "flooded_segments": 0,
+    "model_risk_edges": 93
+  }
+}
