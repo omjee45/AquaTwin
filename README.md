@@ -17,8 +17,6 @@
 <a href="https://youtu.be/PBfshHz1JFk?si=iylk8Wl41uEDjaGW"><b>🎬 Demo video</b></a> <!-- TODO: replace with the YouTube link -->
 · <a href="#-try-it-in-three-clicks">Try it</a>
 · <a href="#-how-it-works">How it works</a>
-· <a href="#-safety-model">Safety</a>
-· <a href="#-limitations">Limits</a>
 </p>
 
 <!-- Add after capturing: <img src="docs/assets/hero.gif" alt="AquaTwin command center demo" width="860"> -->
