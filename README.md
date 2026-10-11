@@ -265,9 +265,7 @@ AquaTwin/
 
 ## 🤖 AI tools used
 
-- **Antigravity**: coding agent used for most of the implementation
-- **Gemini** and **Claude**: planning, prompt writing, code review and documentation drafts
-- **NotebookLM**: intro narration <!-- remove if unused -->
+- **Gemini** and **Claude**: planning and architecture
 - **Runtime models:** Groq `gpt-oss-120b`, with Google Gemini `gemini-2.5-flash` as fallback
 
 All code was reviewed and tested by the team.
