@@ -1,37 +1,78 @@
-# AquaTwin
+<div align="center">
 
-Autonomous flood emergency routing and policy-guarded dispatch digital twin for monsoon inundation.
+<h1>🌊 AquaTwin</h1>
 
-[Live App (pending deploy) <!-- TODO(after deploy) -->](#) · [Demo Video (pending) <!-- TODO(after deploy) -->](#) · [Documentation](spec.md)
+<p><b>Radar sees the flood. Code finds the route. A policy decides what the public hears.</b></p>
+
+<p>
+<img alt="Track" src="https://img.shields.io/badge/Environmental%20Hacks-Track%2002%3A%20Heat%20%26%20Water-0ea5e9">
+<img alt="Built on AWS" src="https://img.shields.io/badge/Built%20on-AWS-ff9900">
+<img alt="Policy gate" src="https://img.shields.io/badge/Alert%20gate-Cedar-22c55e">
+<img alt="Replay" src="https://img.shields.io/badge/Replay-Delhi%20Yamuna%20flood%2C%20July%202023-3b82f6">
+<img alt="License" src="https://img.shields.io/badge/license-MIT-blue">
+</p>
+
+<p>
+<a href="https://main.d2qogaiupnpnbe.amplifyapp.com/"><b>▶ Live app</b></a> ·
+<a href="https://youtu.be/REPLACE_ME"><b>🎬 Demo video</b></a> <!-- TODO: replace with the YouTube link -->
+· <a href="#-try-it-in-three-clicks">Try it</a>
+· <a href="#-how-it-works">How it works</a>
+· <a href="#-safety-model">Safety</a>
+· <a href="#-limitations">Limits</a>
+</p>
+
+<!-- Add after capturing: <img src="docs/assets/hero.gif" alt="AquaTwin command center demo" width="860"> -->
+
+</div>
 
 ---
 
-## Problem
+> **It is a monsoon night in Delhi.** An underpass is filling and an ambulance is on its way. Which road is safe? And who is allowed to tell the public to evacuate?
+>
+> AquaTwin answers the first question with **radar-confirmed flood evidence and deterministic routing**, and the second with **a policy gate the AI cannot bypass**.
 
-Every monsoon, urban streets and underpasses in Indian cities flood within hours, stranding ambulances and rescue vehicles because control rooms lack real-time visibility into passable corridors. Standard optical satellites cannot see through dense monsoon cloud cover, rendering optical imagery blind during the crisis. Giving an AI model direct authority to issue public evacuation alerts is dangerous: a single hallucinated broadcast or false alert can trigger mass panic, gridlock, and severe real-world harm.
+## ✨ At a glance
 
----
+| 🛰️ Flood extent | 🌧️ Rainfall | 🛣️ Roads scored | ⚠️ Flooded roads (≥ 50%) | ✅ Radar-confirmed |
+|:--:|:--:|:--:|:--:|:--:|
+| **1.898 km²**<br>82 polygons | **118.2 mm**<br>8 to 14 Jul 2023 | **15,738**<br>20,012 directed edges | **13 physical**<br>26 directed | **24 directed**<br>by Sentinel-1 |
 
-## What AquaTwin Does
+*Replay of the Delhi Yamuna flood, July 2023 · area `[77.19, 28.62, 77.28, 28.70]`, 78.04 km².*
 
-| Capability | How it is implemented |
-|---|---|
-| **SAR flood extent** | Sentinel-1 C-band Synthetic Aperture Radar (RTC) backscatter thresholded at fixed -16.5 dB VV to penetrate monsoon clouds and extract vector water polygons. |
-| **Terrain & rain risk scoring** | Copernicus DEM GLO-30 simplified HAND (Height Above Nearest Drainage) combined with Open-Meteo precipitation to calculate road pooling risk. |
-| **Deterministic safe routing** | NetworkX directed graph routing that hard-blocks inundated segments ($\ge 0.50$) and applies a $4\times$ distance penalty to model-predicted risk ($0.40 \le P < 0.50$). |
-| **Dispatcher agent** | Multi-provider tool loop (Groq primary, Google Gemini fallback) that inspects hydrology evidence, computes routes, and drafts alert requests without inventing data. |
-| **Policy gate** | Formal Cedar authorization policy evaluated with `cedarpy` that blocks evacuation broadcasts unless radar confirmation and $> 85\%$ flood risk are cryptographically proven from data. |
-| **Emergency SNS alerts** | Amazon Simple Notification Service (SNS) publishing emergency email notices to responders exclusively when permitted by the Cedar gate. |
-| **Command Center UI** | Single-page console built in React, MapLibre GL, and Three.js displaying the SAR flood extent, dual-route comparison, reasoning trace, and live policy flash states. |
+## 🚨 The problem
 
----
+- Every monsoon, streets and underpasses in Indian cities flood within hours, and ambulances get sent down roads that are already impassable.
+- Optical satellites can't see through monsoon cloud, so control rooms are blind exactly when they need to see.
+- An AI that can issue public evacuation alerts on its own is dangerous: one hallucinated broadcast can cause panic, gridlock and real harm.
 
-## System Overview
+## 🧭 What AquaTwin does
+
+| | Capability | How it is built |
+|---|---|---|
+| 🛰️ | **SAR flood extent** | Sentinel-1 C-band radar (RTC), fixed −16.5 dB VV water threshold with change detection, vectorised into flood polygons |
+| ⛰️ | **Terrain and rain risk** | Copernicus 30 m DEM → simplified HAND, plus Open-Meteo rainfall, scored per road segment |
+| 🗺️ | **Deterministic safe routing** | NetworkX: segments ≥ 0.50 are blocked; the 0.40 to 0.50 "likely to pool" band costs 4× |
+| 🤖 | **Dispatcher agent** | Tool-calling agent (Groq first, Gemini fallback) that explains results and drafts alerts. It never invents flood data |
+| 🛡️ | **Policy gate** | A Cedar policy, evaluated outside the model, decides whether an alert may fire |
+| 📣 | **Real alerts** | Amazon SNS email, sent only when the gate allows it |
+| 🖥️ | **Command center** | React + MapLibre + Three.js console: flood map, two-route comparison, reasoning trace, live gate states |
+
+## 🎬 Try it in three clicks
+
+Open the [live app](https://main.d2qogaiupnpnbe.amplifyapp.com/) and scroll to the **Command Center**. Wait about 20 seconds between clicks, because the model runs on free-tier limits.
+
+| Click | What happens | Why it matters |
+|---|---|---|
+| **Calculate Safe Route** (Ambulance 4 → Lok Nayak Hospital) | Code computes a default and a safe route and draws both on the map; the agent explains the result | Routing is plain code, not model guesswork |
+| **Sansad Marg Evacuation Alert** | 🔴 **BLOCKED BY POLICY**: stored data says 41%, model estimate only, no radar confirmation | A hallucinated alert cannot go out |
+| **Broadcast Sentinel-1 Advisory** | 🟢 **ALERT SENT** with a real SNS message ID: stored data says 91%, radar-confirmed | Only radar-confirmed evidence authorises a broadcast |
+
+## 🧩 How it works
 
 ```mermaid
-flowchart TB
-  subgraph OFF["Offline data prep (run once, local)"]
-    S1["Sentinel-1 RTC<br/>Planetary Computer"] --> MASK["Water mask<br/>fixed -16.5 dB, change detection"]
+flowchart LR
+  subgraph OFF["Offline data prep, run once"]
+    S1["Sentinel-1 RTC<br/>Planetary Computer"] --> MASK["Water mask<br/>-16.5 dB + change detection"]
     DEM["Copernicus DEM 30 m"] --> HAND["Simplified HAND"]
     RAIN["Open-Meteo rainfall"] --> SCORE
     OSM["OpenStreetMap roads"] --> SCORE
@@ -39,72 +80,100 @@ flowchart TB
     HAND --> SCORE
     SCORE --> FILES["roads_scored.json<br/>flood_extent.geojson<br/>stats.json"]
   end
+
   FILES --> S3[("Amazon S3")]
+
   subgraph ON["Online runtime on AWS"]
-    UI["Web UI<br/>React + MapLibre"] -.->|HTTPS (pending)| APIGW["API Gateway HTTP API"]
-    APIGW -.-> LAMBDA["AWS Lambda (Python)"]
-    S3 -.-> LAMBDA
+    UI["Web UI<br/>React + MapLibre<br/>Amplify Hosting"] -->|"HTTPS"| APIGW["API Gateway<br/>HTTP API"]
+    APIGW --> LAMBDA["Lambda<br/>Python"]
+    S3 --> LAMBDA
     LAMBDA --> AGENT["Agent tool loop"]
-    AGENT <--> LLM["LLM provider chain"]
     AGENT --> T1["get_flood_status"]
     AGENT --> T2["compute_safe_route<br/>NetworkX"]
     AGENT --> T3["send_alert"]
-    T3 --> GATE{"Policy gate<br/>cedarpy"}
-    GATE -->|allow| SNS["Amazon SNS to email"]
-    GATE -->|deny| BLOCK["BLOCKED BY POLICY"]
+    T3 --> GATE{"Policy gate<br/>Cedar via cedarpy"}
+    GATE -->|"allow"| SNS["Amazon SNS<br/>email alert"]
+    GATE -->|"deny"| BLOCK["BLOCKED BY POLICY"]
     LAMBDA --> CW["CloudWatch Logs"]
+  end
+
+  AGENT <-->|"tool calls"| LLM["LLM providers<br/>Groq, then Gemini<br/>outside AWS"]
+
+  style GATE fill:#3a2a05,stroke:#f59e0b,color:#ffffff
+  style BLOCK fill:#3b0d14,stroke:#f43f5e,color:#ffffff
+  style SNS fill:#06301f,stroke:#34d399,color:#ffffff
+  style LLM fill:#1b2430,stroke:#7f95a0,color:#ffffff,stroke-dasharray: 5 3
+```
+
+**The key design rule:** the gate reads `flood_pct` and `validation_source` from the stored dataset, never from the LLM.
+
+### What happens when someone asks for an alert
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor D as Dispatcher
+  participant UI as Web UI
+  participant L as Lambda agent
+  participant M as LLM provider
+  participant S as S3 data
+  participant G as Cedar gate
+  participant N as Amazon SNS
+
+  D->>UI: Send evacuation alert for a road
+  UI->>L: POST /chat
+  L->>M: message and tool schemas
+  M-->>L: call send_alert with segment id and text only
+  L->>S: read flood_pct and validation_source for that segment
+  L->>G: evaluate role, action and stored values
+  alt flood_pct 41, source model
+    G-->>L: DENY
+    L-->>UI: BLOCKED BY POLICY and the reason
+  else flood_pct above 85, source Sentinel-1
+    G-->>L: ALLOW
+    L->>N: publish alert
+    N-->>D: alert email
+    L-->>UI: ALERT SENT and the SNS message id
   end
 ```
 
-*Note: The policy gate reads `flood_pct` and `validation_source` from S3-loaded data, never from the LLM.*
-
-AquaTwin separates offline planetary-scale geospatial data preparation from the online emergency dispatch runtime. Offline data prep executes once locally using Python to ingest SAR radar scenes, digital elevation models, precipitation data, and OpenStreetMap road graphs, saving static scored datasets to Amazon S3. The online AWS runtime executes serverless: API Gateway proxies requests to an AWS Lambda function running the dispatcher agent. The agent invokes three deterministic tools, and alert broadcasts pass through a Cedar security gate evaluated by `cedarpy` before firing Amazon SNS notifications.
-
----
-
-## How the Evidence is Built
-
-All values reflect the Delhi Yamuna River flood (July 2023) within bounding box `[77.19, 28.62, 77.28, 28.70]` (78.04 km²):
+## 🛰️ How the evidence is built
 
 | Source | Method | Output |
 |---|---|---|
-| **Sentinel-1 RTC** (Planetary Computer) | Pre-event scene `S1A_IW_GRDH_1SDV_20230630T005232_..._rtc` (30 Jun 2023 00:52:32 UTC / 06:22:32 IST) vs Event scene `S1A_IW_GRDH_1SDV_20230712T005233_..._rtc` (12 Jul 2023 00:52:33 UTC / 06:22:33 IST, -1.0 day before peak). Fixed threshold at -16.5 dB VV on 3×3 median filter with change detection ($\Delta < -3.0$ dB). | 1.898 km² flood extent across 82 polygons; 0.595 km physical flooded roads (1.191 km directed). |
-| **Copernicus DEM GLO-30** | 30 m elevation raster; Euclidean distance transform (`distance_transform_edt`) from permanent river channel as simplified HAND. | Relative elevation above drainage: `low_hand_risk = 1.0 - clip(hand / 15.0, 0, 1)`. |
-| **Open-Meteo Historical API** | Daily precipitation aggregation across Delhi bbox from 8–14 July 2023. | 118.2 mm cumulative rainfall (`rain_norm = clip(118.2 / 200, 0, 1) = 0.591`). |
-| **OpenStreetMap** | Overpass API extraction filtered for drivable highways and hospital points of interest. | 15,738 physical road segments (20,012 directed edges) and Lok Nayak Hospital (LNJP). |
-| **Hydrological Risk Scoring** | Multi-criteria formula: `0.5 * sar_overlap + 0.3 * low_hand + 0.2 * rain_norm`. | 13 physical segments $\ge 0.50$ (26 directed); 5 physical segments $\ge 0.85$ (10 directed); 24 directed segments confirmed by Sentinel-1. |
+| **Sentinel-1 RTC** (Microsoft Planetary Computer) | Pre-event scene `S1A_IW_GRDH_1SDV_20230630T005232…` (30 Jun 2023, 06:22 IST) vs event scene `S1A_IW_GRDH_1SDV_20230712T005233…` (12 Jul 2023, 00:52 UTC / 06:22 IST, about 1 day before the 13 Jul peak). 3×3 median filter, fixed −16.5 dB VV threshold, change detection (Δ < −3 dB). | 1.898 km² flood extent in 82 polygons; 0.595 km of physical roads flooded |
+| **Copernicus DEM GLO-30** | 30 m elevation; Euclidean distance from the permanent river channel as a **simplified** HAND: `low_hand_risk = 1 − clip(HAND / 15, 0, 1)` | Terrain risk per road |
+| **Open-Meteo** | Daily precipitation, 8 to 14 Jul 2023 | 118.2 mm total; `rain_norm = 118.2 / 200 = 0.591` |
+| **OpenStreetMap** | Drivable roads and hospitals from Overpass | 15,738 physical segments (20,012 directed edges); Lok Nayak Hospital |
+| **Risk score** | `0.5 × SAR overlap + 0.3 × low HAND + 0.2 × rain_norm` | 13 physical segments ≥ 0.50 (26 directed); 5 physical ≥ 0.85 (10 directed); 24 directed confirmed by Sentinel-1 |
 
----
+## 🗺️ Routing and the agent
 
-## Routing, Agent, and Policy Gate
+**Routing is plain code.** Edges with `flood_probability ≥ 0.50` are removed from the safe graph. Edges in the 0.40 to 0.50 band that come from the model (not radar) cost 4× their length, which steers vehicles away from low-lying roads that are likely to pool. In the demo corridor (Near Velodrome Road → Lok Nayak Hospital) the direct route is **5.386 km** and the safe route is **6.962 km** (+1.577 km), avoiding 93 at-risk edges.
 
-### Deterministic Routing
-Routing is executed entirely in NetworkX without LLM involvement. Edges with `flood_probability >= 0.50` are hard-blocked and excluded from the safe graph. Edges with model-predicted risk ($0.40 \le P < 0.50$, source `"model"`) receive a $4\times$ distance penalty (`weight = length_m * 4.0`), steering ambulances away from low-lying pooling corridors. In the demo corridor from Near Velodrome Rd to Lok Nayak Hospital (LNJP), safe routing avoids 93 model-risk edges, resulting in a 6.962 km safe path (+1.577 km detour over the 5.386 km direct route).
+**The agent has three tools:**
 
-### Tools and Model Provider Chain
-The agent operates with three discrete tools:
-1. `get_flood_status(segment_id)`: Inspects ground-truth SAR overlap, simplified HAND, and flood probability.
-2. `compute_safe_route(origin_node, destination_node)`: Computes deterministic NetworkX default vs safe routes.
-3. `send_alert(segment_id, message)`: Requests an emergency broadcast guarded by the policy gate.
+| Tool | What it does |
+|---|---|
+| `get_flood_status(segment_id)` | Returns stored flood probability, source and flags for a road |
+| `compute_safe_route(origin, destination)` | Runs the deterministic router and returns both routes |
+| `send_alert(segment_id, message)` | Requests a broadcast, which is checked by the policy gate |
 
-**Model Fallback Chain:**
-1. **Primary**: Groq API running `openai/gpt-oss-120b` (configured via `OPENAI_COMPAT_MODEL`).
-2. **Fallback**: Google Gemini API running `gemini-2.5-flash` (configured via `GEMINI_MODEL`), triggered automatically on HTTP 429 rate limits or provider failure.
-3. **Deterministic Dispatch**: If all LLM providers fail, the system sets `llm_unavailable: true` and engages rule-based emergency dispatch without hallucinating.
+**Model chain:** Groq `openai/gpt-oss-120b` first, Google `gemini-2.5-flash` if Groq is rate-limited or fails. If every provider fails, the API returns `llm_unavailable: true` with a reason instead of faking an answer. Every response reports `model_provider`, `model_name` and `calls_used`.
 
-### Cedar Policy Gate
-The policy in [`cedar/policy.cedar`](cedar/policy.cedar) enforces strict authorization:
+## 🛡️ Safety model
+
+Controls live in code and data, not in a prompt:
+
+1. **The decision is outside the model.** A Cedar policy ([`cedar/policy.cedar`](cedar/policy.cedar)) decides whether an alert may fire, and the default is deny.
+2. **The model supplies almost nothing.** `send_alert` accepts only a `segment_id` and message text ([`agent/tools.py`](agent/tools.py)).
+3. **Evidence comes from stored data.** The evaluator reads `flood_pct` and `validation_source` from `roads_scored.json` ([`cedar/evaluator.py`](cedar/evaluator.py)), so the model cannot claim "99% confirmed" and be believed.
+4. **The engine is reported.** Every decision includes which engine ran (`cedarpy`, or a native Python evaluator of the same rule if `cedarpy` cannot load).
+5. **No LLM in routing.** Routes come from NetworkX ([`routing/engine.py`](routing/engine.py)).
+6. **No fake answers.** Provider failure returns `llm_unavailable`, not invented text ([`agent/handler.py`](agent/handler.py)).
+7. **No secrets in the package.** Keys live in environment variables, and the Lambda build excludes `.env` and caches ([`deploy/build_lambda.sh`](deploy/build_lambda.sh)).
 
 ```cedar
-// AquaTwin Emergency Alert Policy
-// Environmental Hacks (Track 02: Heat and Water)
-//
-// Rule:
-// Only an EmergencyManager can dispatch a public broadcast alert.
-// The segment must have Sentinel-1 radar confirmation (validation_source == "Sentinel-1")
-// AND the flood probability percentage must exceed 85% (flood_pct > 85).
-// All other requests are denied by default.
-
 permit(
   principal in Role::"EmergencyManager",
   action == Action::"SendAlert",
@@ -115,132 +184,107 @@ permit(
 };
 ```
 
-**Key Security Design Rule:** The `send_alert` tool accepts *only* `segment_id` and `message` from the LLM. The evaluator reads `flood_pct` and `validation_source` directly from stored dataset records (`roads_scored.json`). The LLM cannot provide, modify, or hallucinate authorization attributes. The policy is evaluated in Python using the official `cedarpy` engine (with an automated fallback to `cedar-native` AST validation if Rust binary bindings are unavailable).
+> [!NOTE]
+> Cedar evaluates policies deterministically and is open source from AWS. It checks the values the application gives it. Here those values come from stored radar-derived data, so the guarantee is "the model cannot change them", not "the data is perfect".
 
----
+## ☁️ AWS services
 
-## AWS Services Used
+| Service | Role |
+|---|---|
+| **Amazon S3** | Stores the flood extent, scored road graph and statistics |
+| **AWS Lambda** | Python backend: `/chat`, `/route`, `/state` |
+| **Amazon API Gateway** | HTTP API in front of Lambda, with CORS |
+| **Amazon SNS** | Emergency email alerts, only when the gate allows |
+| **Amazon CloudWatch** | Lambda logs, token usage and policy decisions |
+| **AWS Amplify Hosting** | Hosts the web console |
+| **Cedar** (AWS open source) | The policy engine behind the alert gate |
 
-| Service | Role | Status |
-|---|---|---|
-| **Amazon S3** | Static store for GeoJSON flood extent, scored road graphs, and summary statistics. | Configured in `deploy/setup_aws.py` <!-- TODO(after deploy) --> (pending deploy) |
-| **AWS Lambda** | Serverless Python execution backend (`deploy/lambda_handler.py`) serving `/chat`, `/route`, and `/state`. | Packaged in `deploy/build_lambda.sh` <!-- TODO(after deploy) --> (pending deploy) |
-| **Amazon API Gateway** | HTTP API exposing Lambda endpoints with CORS headers. | Scripted <!-- TODO(after deploy) --> (pending deploy) |
-| **Amazon SNS** | Emergency broadcast topic (`AquaTwin-Emergency-Alerts`) dispatching email alerts. | Scripted in `deploy/setup_aws.py` <!-- TODO(after deploy) --> (pending deploy) |
-| **Amazon CloudWatch** | Ingestion of Lambda runtime logs, token usage, and policy gate audits. | Configured <!-- TODO(after deploy) --> (pending deploy) |
-| **Frontend Hosting** | Web client delivery (AWS Amplify Hosting or S3 + CloudFront). | Local Vite server <!-- TODO(after deploy) --> (pending deploy) |
+> [!IMPORTANT]
+> Amazon Bedrock was blocked on this new free-plan account (`ValidationException: Operation not allowed`), so the agent runs on Groq and Gemini instead. The Strands Agents SDK is **not** used: the agent is a small tool loop on OpenAI-compatible and Google GenAI clients.
 
-> **Note on Model Providers:** Amazon Bedrock model invocation was blocked on this new free-plan AWS account due to account tier quotas. Consequently, the agent runtime calls Groq and Google Gemini instead. Strands Agents SDK is not used in `agent/handler.py`; the runtime uses direct OpenAI-compatible and Google GenAI SDK clients.
+## ⚠️ Limitations
 
----
+> [!WARNING]
+> AquaTwin is a **replay** of a past event, not a live flood-warning system. Please read these before relying on any output.
 
-## Limitations
+- **Revisit and resolution.** Sentinel-1 passes every 6 to 12 days at about 10 m. It confirms flood *extent*, not water on individual streets.
+- **Scene timing.** The event scene was captured at 00:52 UTC on 12 Jul 2023, about a day before the Yamuna peaked on 13 Jul, so it under-represents the peak.
+- **Urban clutter.** Buildings cause double-bounce backscatter that can hide standing water in dense streets.
+- **Simplified HAND.** Terrain risk uses straight-line distance from the river, not true flow routing.
+- **"Likely to pool" is an estimate.** The 0.40 to 0.50 band is a model estimate from terrain and rain, not confirmed water.
+- **Free-tier models.** Groq and Gemini limits are tight, and long sessions can fall back or return `llm_unavailable`.
 
-- **Revisit Period and Resolution:** Sentinel-1 has a 6-to-12-day orbital revisit cycle; 10 m pixel resolution cannot resolve narrow interior alleys, sidewalks, or micro-topography.
-- **Scene Acquisition Timing:** The available post-event SAR scene was captured on 12 July 2023 (00:52 UTC), 1.0 day before the Yamuna River flood peaked on 13 July 2023.
-- **Urban Double-Bounce Clutter:** Vertical concrete walls and dense structures produce high radar backscatter that can mask standing water in narrow street canyons.
-- **Simplified HAND Approximation:** Drainage distance is computed via Euclidean distance transform from permanent water rather than rigorous D8 hydrological flow routing.
-- **Unconfirmed Risk Band:** The 0.40–0.50 probability band denotes model-predicted pooling risk based on elevation and rain, not verified surface water.
-- **Replay System:** AquaTwin currently replays the July 2023 event from pre-indexed scenes rather than live orbital telemetry streams.
-- **Free-Tier Rate Limits:** Groq and Gemini free-tier endpoints have aggressive rate limits (mitigated by exponential backoff and deterministic degradation).
+## 🚀 Run locally
 
----
-
-## Run Locally
-
-### 1. Prerequisites and Installation
 ```bash
 git clone https://github.com/omjee45/AquaTwin.git
 cd AquaTwin
 pip install -r requirements.txt
-pip install -r prep/requirements.txt
+cp .env.example .env        # then add your keys (never commit .env)
+python deploy/lambda_handler.py       # backend on http://localhost:8000
 ```
 
-### 2. Data Preparation (Optional — Pre-computed in `prep/out/`)
-```bash
-python prep/build_data.py
-```
-
-### 3. Start Local Backend Server
-```bash
-python deploy/lambda_handler.py
-# Runs on http://localhost:8000 (serves /chat, /route, /state)
-```
-
-### 4. Start Frontend UI
 ```bash
 cd frontend
 npm install
-npm run dev
-# Open http://localhost:3000
+npm run dev                            # UI on http://localhost:3000
 ```
 
----
+Optional: rebuild the data with `pip install -r prep/requirements.txt && python prep/build_data.py` (results are already in `prep/out/`).
 
-## Deploy
+**Environment variables (names only):** `MODEL_PROVIDERS`, `OPENAI_COMPAT_BASE_URL`, `OPENAI_COMPAT_API_KEY`, `OPENAI_COMPAT_MODEL`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `SNS_TOPIC_ARN`, `DATA_BUCKET`, `DATA_PREFIX`.
 
-AWS deployment is automated via scripts in `deploy/`:
+## 📦 Deploy (summary)
 
-1. **Configure S3 and SNS:**
-   ```bash
-   python deploy/setup_aws.py dispatcher@example.com
-   ```
-2. **Package Lambda Backend:**
-   ```bash
-   bash deploy/build_lambda.sh
-   # Builds deploy/lambda_package.zip excluding caches and secrets
-   ```
-3. **Deploy Lambda & API Gateway:** <!-- TODO(after deploy) -->
-4. **Deploy Frontend to AWS Amplify / S3:** <!-- TODO(after deploy) -->
+1. `python deploy/setup_aws.py you@example.com` creates the S3 bucket and SNS topic. Confirm the SNS email subscription.
+2. `bash deploy/build_lambda.sh` builds `lambda_package.zip` for Linux, excluding secrets.
+3. Create the Lambda function and an API Gateway HTTP API (routes `/state`, `/chat`, `/route`, CORS on). Set the environment variables in the Lambda console.
+4. Build the frontend with `VITE_API_URL` set to the API URL, then deploy `dist/` to Amplify Hosting.
 
----
+## 🗂️ Repository
 
-## Repository Structure
-
-```
+```text
 AquaTwin/
-├── agent/                  # AI dispatcher agent and tools
-│   ├── handler.py          # Multi-provider agent loop (Groq & Gemini)
-│   └── tools.py            # get_flood_status, compute_safe_route, send_alert
-├── cedar/                  # Authorization policy gate
-│   ├── policy.cedar        # Cedar rule (permit if flood_pct > 85 & Sentinel-1)
-│   └── evaluator.py        # cedarpy evaluation engine with fallback
-├── routing/                # Deterministic graph algorithms
-│   └── engine.py           # NetworkX routing with hard blocks and 4x penalty
-├── prep/                   # One-time geospatial data pipeline
-│   ├── build_data.py       # STAC ingestion, HAND, rainfall, and scoring
-│   ├── requirements.txt    # GIS dependencies (rasterio, osmnx, geopandas)
-│   └── out/                # Output datasets (stats.json, roads_scored.json, etc.)
-├── deploy/                 # AWS deployment and serverless packaging
-│   ├── build_lambda.sh     # Lambda packaging script (excludes secrets)
-│   ├── lambda_handler.py   # Lambda entrypoint & local dev HTTP server
-│   └── setup_aws.py        # Automated S3 bucket & SNS topic provisioning
-├── frontend/               # Single-page dispatcher command center
-│   ├── src/                # React components (MapLibre, Three.js orb, telemetry)
-│   └── package.json        # Frontend dependencies (React, MapLibre GL, GSAP, Three.js)
-├── docs/                   # System diagrams and visual assets
-│   └── system-overview.svg # Architecture diagram
-├── spec.md                 # Master project specification
-├── requirements.txt        # Backend dependencies
-└── LICENSE                 # MIT License
+├── agent/        handler.py (provider chain, tool loop) · tools.py (3 tools)
+├── cedar/        policy.cedar · evaluator.py (cedarpy, with reported fallback)
+├── routing/      engine.py (NetworkX: block ≥ 0.50, ×4 penalty in the 0.40-0.50 band)
+├── prep/         build_data.py (SAR, DEM, rain, OSM, scoring) · out/ (datasets)
+├── deploy/       build_lambda.sh · lambda_handler.py · setup_aws.py
+├── frontend/     React + MapLibre + Three.js command center
+├── docs/         diagrams and screenshots
+├── spec.md       project specification
+└── LICENSE       MIT
 ```
 
----
+## 🧱 Known gaps
 
-## Data Sources and Attributions
+| Gap | Why | What would fix it |
+|---|---|---|
+| Replay, not live | Needs a live Sentinel-1 ingestion pipeline | Scheduled ingestion on Lambda or Step Functions |
+| Radar can't see streets | 10 m resolution and urban clutter | Add rainfall nowcasts, drainage data, higher-resolution SAR |
+| Free-tier model limits | No Bedrock access on this account | Enable Bedrock; the provider chain is already pluggable |
+| Public demo API | Built for judges to try quickly | Add Cognito or API keys, plus a WAF |
 
-- **OpenStreetMap**: Road vectors and building footprints &copy; [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), licensed under the Open Database License (ODbL).
-- **Copernicus Sentinel-1**: Contains modified Copernicus Sentinel data (2023) provided by the European Space Agency (ESA) via Microsoft Planetary Computer STAC API.
-- **Copernicus DEM GLO-30**: European Space Agency / European Union Copernicus program.
-- **Open-Meteo**: Weather data by [Open-Meteo.com](https://open-meteo.com/) under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-- **Basemap Tiles**: Esri World Dark Gray Canvas &copy; Esri, HERE, Garmin, OpenStreetMap contributors.
-- **Frontend Libraries**: React, MapLibre GL (`maplibre-gl`), Three.js (`three`), GSAP (`gsap`), Lucide React (`lucide-react`), Tailwind CSS, Vite.
-- **Python Libraries**: NetworkX, `cedarpy`, `boto3`, `requests`, `python-dotenv`, `google-genai`, `openai`.
-- **Typography**: Google Fonts ([Plus Jakarta Sans](https://fonts.google.com/specimen/Plus+Jakarta+Sans), [Space Grotesk](https://fonts.google.com/specimen/Space+Grotesk), [Inter](https://fonts.google.com/specimen/Inter), [JetBrains Mono](https://fonts.google.com/specimen/JetBrains+Mono)).
+## 🤖 AI tools used
 
+- **Antigravity**: coding agent used for most of the implementation
+- **Gemini** and **Claude**: planning, prompt writing, code review and documentation drafts
+- **NotebookLM**: intro narration <!-- remove if unused -->
+- **Runtime models:** Groq `gpt-oss-120b`, with Google Gemini `gemini-2.5-flash` as fallback
 
----
+All code was reviewed and tested by the team.
 
-## License
+## 🙏 Data sources and attributions
 
-AquaTwin is released under the [MIT License](LICENSE).
+- **OpenStreetMap**: © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), ODbL
+- **Copernicus Sentinel-1**: contains modified Copernicus Sentinel data (2023), accessed through the Microsoft Planetary Computer STAC API
+- **Copernicus DEM GLO-30**: © ESA / European Union, Copernicus programme
+- **Open-Meteo**: weather data by [Open-Meteo.com](https://open-meteo.com/), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+- **Basemap**: Esri World Dark Gray Canvas, © Esri, HERE, Garmin, OpenStreetMap contributors
+- **Frontend**: React, MapLibre GL, Three.js, GSAP, Lucide, Tailwind CSS, Vite
+- **Backend**: NetworkX, cedarpy, boto3, requests, python-dotenv, google-genai, openai
+- **Fonts**: Plus Jakarta Sans, Space Grotesk, Inter, JetBrains Mono (Google Fonts)
+
+## 📄 License
+
+[MIT](LICENSE)
